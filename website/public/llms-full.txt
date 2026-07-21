@@ -1,0 +1,116 @@
+# Header Override
+
+> Canonical website: https://headeroverride.com/
+> LLM index: https://headeroverride.com/llms.txt
+
+Header Override is a lightweight browser extension for modifying HTTP headers and cookies with local rules.
+
+## Product Summary
+
+Header Override helps developers, QA engineers, support engineers, and technical users test APIs, staging environments, feature flags, cookies, and request-specific behavior without changing application code.
+
+The extension stores rules locally in the user's browser. It does not use analytics, tracking, advertising, remote code, external servers, or third-party data sharing.
+
+## Product Facts
+
+- Product name: Header Override
+- Category: Browser extension, developer tool, HTTP header and cookie modifier
+- Primary use: Modify HTTP headers and cookies with scoped local rules
+- Data handling: Local browser extension storage only
+- Tracking: No analytics, no advertising, no tracking
+- Current version: 1.0.3
+- Profile support: Up to five local profiles with selected-profile JSON import and export
+- Main developer: Orest Kreminskyi
+- Developer LinkedIn: https://www.linkedin.com/in/orest-kreminskyi-33852065/
+- GitHub repository: https://github.com/headeroverride/headeroverride
+- YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+- Support contact: support@headeroverride.com
+- Canonical website: https://headeroverride.com/
+
+## Features
+
+- Add or replace HTTP request and response headers from the extension popup.
+- Override request Cookie headers.
+- Override response Set-Cookie headers.
+- Configure response cookie Domain, Path, SameSite, Lifetime, Max-Age, and Secure attributes.
+- Create up to five local profiles for different projects, accounts, or test setups.
+- Import and export selected profiles as local JSON files.
+- Scope matching rules with browser-supported URL filter patterns.
+- Enable, disable, delete, and annotate rules with comments.
+- Store rules locally in browser extension storage.
+- Use Manifest V3 browser extension APIs.
+
+## Common Use Cases
+
+- Send debug headers to staging APIs without changing application code.
+- Reproduce customer-specific headers or cookies with scoped local rules.
+- Toggle backend flags while testing UI flows in your browser.
+- Switch between client, environment, or test-account setups with profiles.
+- Document temporary rules before removing them.
+
+## FAQ
+
+### What is Header Override used for?
+
+Header Override helps developers, QA teams, and support engineers modify HTTP headers and cookies from the browser for scoped debugging and testing workflows.
+
+### Are rules sent to a server?
+
+No. Rules are stored locally in browser extension storage and are used only to apply the header or cookie changes you configure.
+
+### Can rules target specific URLs?
+
+Yes. Header and cookie rules can be scoped with browser-supported URL filter patterns, so changes apply only to matching requests.
+
+### Why does Header Override request access to websites?
+
+Header Override needs host access so browser-supported rules can apply to the URL patterns you create. The extension does not send your rules or browsing activity to the developer or third parties.
+
+## Privacy Policy
+
+Last updated July 20, 2026.
+
+Header Override lets users create local rules that override HTTP headers and cookies for URLs they choose.
+
+Header Override stores the rules you create in your browser's local extension storage. This data may include profile names, header names, header values, cookie names, cookie values, cookie attributes, cookie domains, paths, URL filter patterns, comments, and whether each rule is enabled.
+
+The extension uses these rules only to configure the browser's request rules API, write request cookies you configured, and apply the header or cookie changes you requested.
+
+Header Override does not send your rules, browsing activity, website content, or any other personal data to the developer or to any third party. The extension does not use analytics, advertising, tracking, remote code, or external servers.
+
+Rules are stored locally in your browser using extension storage. You can edit or delete rules from the extension popup. Uninstalling the extension removes the locally stored extension data according to the browser's normal extension storage behavior.
+
+Header Override requests access to all URLs so that user-created rules can apply to the websites and requests selected by the user's URL filters. It requests storage permission so rules can be saved locally.
+
+For privacy questions, email support@headeroverride.com.
+
+## Contact
+
+Header Override is developed by Orest Kreminskyi.
+
+LinkedIn: https://www.linkedin.com/in/orest-kreminskyi-33852065/
+
+GitHub repository: https://github.com/headeroverride/headeroverride
+
+YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+
+For support or enhancement requests, email support@headeroverride.com.
+
+For support requests, include your browser, the rule type, the URL filter you expected to match, and what happened instead.
+
+For enhancement ideas, keep the request short and include the workflow you want to improve.
+
+Do not send passwords, access tokens, cookies, private header values, or other sensitive data.
+
+## Public Pages
+
+- Homepage: https://headeroverride.com/
+- Markdown homepage: https://headeroverride.com/index.md
+- Privacy policy: https://headeroverride.com/privacy
+- Markdown privacy policy: https://headeroverride.com/privacy.md
+- Contact: https://headeroverride.com/contact
+- Markdown contact page: https://headeroverride.com/contact.md
+- GitHub repository: https://github.com/headeroverride/headeroverride
+- YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+- Sitemap: https://headeroverride.com/sitemap.xml
+- Robots policy: https://headeroverride.com/robots.txt

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Header Override</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="toolbar">
+        <div class="brand">
+          <img src="../icons/icon-32.png" alt="" aria-hidden="true">
+          <h1>Header Override</h1>
+        </div>
+        <div class="profile-menu">
+          <span id="profile-current" class="profile-current"></span>
+          <button
+            id="profile-menu-button"
+            class="icon-button menu-button"
+            type="button"
+            title="Profiles"
+            aria-label="Profiles"
+            aria-haspopup="menu"
+            aria-expanded="false"
+          >
+            <span aria-hidden="true"></span>
+          </button>
+          <div id="profile-menu" class="profile-menu-panel" role="menu" hidden>
+            <div class="profile-menu-heading">
+              <span>Profiles</span>
+              <button class="profile-add-button" type="button" aria-label="Add profile">+</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="tabs-row">
+        <nav class="tabs" aria-label="Rule type">
+          <button class="tab is-active" type="button" data-tab="headers">
+            <span class="tab-label">Headers</span>
+            <span class="tab-count" data-count="headers">0</span>
+          </button>
+          <button class="tab" type="button" data-tab="cookies">
+            <span class="tab-label">Cookies</span>
+            <span class="tab-count" data-count="cookies">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <section class="rules-shell" aria-label="Override rules">
+        <div id="rules" class="rules"></div>
+      </section>
+    </main>
+
+    <template id="url-help-template">
+      <span class="url-heading">
+        URL
+        <button
+          type="button"
+          class="help-tip"
+          aria-label="URL filter syntax examples"
+          aria-expanded="false"
+        >
+          ?
+        </button>
+        <span class="help-panel" role="tooltip">
+          <span class="help-title">URL filter syntax</span>
+          <span class="help-grid">
+            <span class="help-grid-head">urlFilter</span>
+            <span class="help-grid-head">Matches</span>
+            <span class="help-grid-head">Does not match</span>
+
+            <code>|https*</code>
+            <span>https://example.com</span>
+            <span>http://example.com<br>http://https.com</span>
+
+            <code>*example.com*</code>
+            <span>https://api.example.com/users</span>
+            <span>https://example.org</span>
+
+            <code>*api.example.com/users/*</code>
+            <span>https://api.example.com/users/123</span>
+            <span>https://api.example.com/projects/123</span>
+          </span>
+          <ul class="help-legend">
+            <li><code>|</code> at the start: URL starts with the filter. At the end: URL ends with it.</li>
+            <li><code>*</code> means any characters.</li>
+          </ul>
+        </span>
+      </span>
+    </template>
+
+    <template id="header-rule-template">
+      <article class="rule header-rule">
+        <div class="rule-main header-rule-main">
+          <input class="enabled" type="checkbox" title="Enabled" aria-label="Enabled">
+          <input class="header" type="text" placeholder="Header" title="Header" aria-label="Header">
+          <input class="value" type="text" placeholder="Value" title="Value" aria-label="Value">
+          <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
+          <input class="comment" type="text" placeholder="Comment" title="Comment" aria-label="Comment">
+          <button class="delete icon-button" title="Delete rule" aria-label="Delete rule">x</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="cookie-rule-template">
+      <article class="rule cookie-rule">
+        <div class="cookie-row cookie-primary">
+          <input class="enabled" type="checkbox" title="Enabled" aria-label="Enabled">
+          <input class="name" type="text" placeholder="Name" title="Cookie name" aria-label="Cookie name">
+          <input class="value" type="text" placeholder="Value" title="Cookie value" aria-label="Cookie value">
+          <input class="cookie-url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
+          <input class="comment" type="text" placeholder="Comment" title="Comment" aria-label="Comment">
+          <button class="delete icon-button" title="Delete rule" aria-label="Delete rule">x</button>
+        </div>
+        <div class="cookie-row cookie-request-fields">
+          <span></span>
+          <div class="cookie-detail-shell">
+            <div class="detail-summary">
+              <button class="detail-toggle" type="button">Edit</button>
+              <span class="detail-summary-text"></span>
+            </div>
+            <div class="cookie-details detail-editor">
+              <button class="detail-done" type="button">Done</button>
+              <label class="detail-field detail-field-wide">
+                <span>URL filter</span>
+                <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="cookie-row cookie-response-fields">
+          <span></span>
+          <div class="cookie-detail-shell">
+            <div class="detail-summary">
+              <button class="detail-toggle" type="button">Edit</button>
+              <span class="detail-summary-text"></span>
+            </div>
+            <div class="cookie-details detail-editor">
+              <button class="detail-done" type="button">Done</button>
+              <label class="detail-field detail-field-medium">
+                <span>Domain</span>
+                <input class="domain" type="text" placeholder="Optional" title="Domain" aria-label="Domain">
+              </label>
+              <label class="detail-field detail-field-short">
+                <span>Path</span>
+                <input class="path" type="text" placeholder="/" title="Path" aria-label="Path">
+              </label>
+              <label class="detail-field detail-field-short">
+                <span>SameSite</span>
+                <select class="same-site" title="SameSite" aria-label="SameSite">
+                  <option value="lax">Lax</option>
+                  <option value="strict">Strict</option>
+                  <option value="no_restriction">None</option>
+                </select>
+              </label>
+              <label class="detail-field detail-field-short">
+                <span>Lifetime</span>
+                <select class="session" title="Lifetime" aria-label="Lifetime">
+                  <option value="true">Session</option>
+                  <option value="false">Persistent</option>
+                </select>
+              </label>
+              <label class="detail-field detail-field-max-age">
+                <span>Max-Age</span>
+                <input class="max-age" type="number" min="1" step="1" placeholder="2592000" title="Max-Age seconds" aria-label="Max-Age seconds">
+              </label>
+              <label class="detail-check">
+                <input class="secure" type="checkbox">
+                <span>Secure</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

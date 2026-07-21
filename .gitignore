@@ -1,0 +1,10 @@
+dist/
+.DS_Store
+.idea/
+website/.next/
+website/out/
+website/node_modules/
+website/.env*.local
+node_modules/
+playwright-report/
+test-results/

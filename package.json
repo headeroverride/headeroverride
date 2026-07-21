@@ -1,0 +1,13 @@
+{
+  "name": "header-override",
+  "private": true,
+  "version": "1.0.3",
+  "scripts": {
+    "screenshots:generated": "node scripts/capture_chrome_store_screenshots.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}
