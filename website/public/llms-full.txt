@@ -18,7 +18,7 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - Primary use: Modify HTTP headers and cookies with scoped local rules
 - Data handling: Local browser extension storage only
 - Tracking: No analytics, no advertising, no tracking
-- Current version: 1.0.3
+- Current version: 1.0.4
 - Profile support: Up to five local profiles with selected-profile JSON import and export
 - Main developer: Orest Kreminskyi
 - Developer LinkedIn: https://www.linkedin.com/in/orest-kreminskyi-33852065/

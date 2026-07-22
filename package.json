@@ -1,7 +1,7 @@
 {
   "name": "header-override",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "scripts": {
     "screenshots:generated": "node scripts/capture_chrome_store_screenshots.mjs",
     "test:e2e": "playwright test",
