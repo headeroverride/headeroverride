@@ -3,6 +3,10 @@
   "private": true,
   "version": "1.0.4",
   "scripts": {
+    "package:extension": "node scripts/package_extension.mjs all",
+    "package:extension:chrome": "node scripts/package_extension.mjs chrome",
+    "package:extension:edge": "node scripts/package_extension.mjs edge",
+    "package:extension:firefox": "node scripts/package_extension.mjs firefox",
     "screenshots:generated": "node scripts/capture_chrome_store_screenshots.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
