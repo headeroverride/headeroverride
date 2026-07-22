@@ -60,8 +60,7 @@ export default {
 
 const markdownRoutes = new Map([
   ["/", "/index.md"],
-  ["/privacy", "/privacy.md"],
-  ["/support", "/support.md"]
+  ["/privacy", "/privacy.md"]
 ]);
 
 function getMarkdownPath(request, url) {

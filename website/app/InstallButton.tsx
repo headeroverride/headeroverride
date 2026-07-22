@@ -19,7 +19,7 @@ const storeLinks: StoreLink[] = [
   {
     key: "edge",
     label: "Edge",
-    url: process.env.NEXT_PUBLIC_EDGE_EXTENSION_URL ?? ""
+    url: ""
   },
   {
     key: "firefox",
@@ -76,7 +76,7 @@ export default function InstallButton() {
   if (isDetected && detectedStore && !detectedStore.url) {
     return (
       <p className="install-status" role="status">
-        {detectedStore.label} is supported. The install link is not configured yet.
+        {detectedStore.label} support is ready and currently under store review.
       </p>
     );
   }
