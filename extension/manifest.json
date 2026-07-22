@@ -17,8 +17,10 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "src/background.js",
-    "type": "module"
+    "scripts": [
+      "src/background.js"
+    ],
+    "service_worker": "src/background.js"
   },
   "action": {
     "default_title": "Header Override",
