@@ -4,7 +4,7 @@ Header Override is developed by Orest Kreminskyi.
 
 - LinkedIn: https://www.linkedin.com/in/orest-kreminskyi-33852065/
 - GitHub repository: https://github.com/headeroverride/headeroverride
-- YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+- YouTube channel: https://www.youtube.com/@HeaderOverrideExtension
 - Support email: support@headeroverride.com
 
 ## Support and enhancements

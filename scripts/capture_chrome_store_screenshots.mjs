@@ -143,6 +143,7 @@ async function main() {
       animations: "disabled"
     });
 
+    await renderProfileDropdownZoom(context, captureDir);
     await renderFeatureScreenshots(context, captureDir);
     await renderMarqueePromoTile(context, captureDir);
   } finally {
@@ -220,6 +221,19 @@ async function renderFeatureScreenshots(context, captureDir) {
     });
   }
 
+  await page.close();
+}
+
+async function renderProfileDropdownZoom(context, captureDir) {
+  const page = await context.newPage();
+  const imageData = await fs.readFile(path.join(captureDir, "popup-profiles.png"), "base64");
+
+  await page.setViewportSize({ width: 960, height: 540 });
+  await page.setContent(profileDropdownZoomHtml({ imageData }), { waitUntil: "load" });
+  await page.screenshot({
+    path: path.join(outputDir, "profile-dropdown-zoom.png"),
+    animations: "disabled"
+  });
   await page.close();
 }
 
@@ -470,6 +484,63 @@ function marqueePromoTileHtml({ imageData, iconData }) {
 </html>`;
 }
 
+function profileDropdownZoomHtml({ imageData }) {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      * { box-sizing: border-box; }
+
+      html,
+      body {
+        margin: 0;
+        width: 960px;
+        height: 540px;
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      main {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(circle at 76% 17%, rgba(11, 122, 117, 0.08), transparent 31%),
+          #ffffff;
+      }
+
+      .zoom-frame {
+        width: 800px;
+        height: 450px;
+        overflow: hidden;
+        border: 1px solid #d8e0ea;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 24px 54px rgba(24, 34, 48, 0.12);
+      }
+
+      img {
+        display: block;
+        width: 760px;
+        height: 520px;
+        transform: scale(1.78);
+        transform-origin: 91% 12%;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="zoom-frame">
+        <img src="data:image/png;base64,${imageData}" alt="">
+      </div>
+    </main>
+  </body>
+</html>`;
+}
+
 function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
   return `<!doctype html>
 <html lang="en">
@@ -508,9 +579,9 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
 
       .copy {
         position: absolute;
-        left: 72px;
-        top: 160px;
-        width: 330px;
+        left: 54px;
+        top: 124px;
+        width: 190px;
         min-width: 0;
       }
 
@@ -530,7 +601,7 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
 
       h1 {
         margin: 0 0 18px;
-        font-size: 36px;
+        font-size: 27px;
         line-height: 1.05;
         letter-spacing: 0;
       }
@@ -538,12 +609,12 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
       p {
         margin: 0;
         color: var(--muted);
-        font-size: 18px;
+        font-size: 14px;
       }
 
       .browser {
         position: absolute;
-        inset: 54px 58px 48px;
+        inset: 44px 42px 42px;
         border: 1px solid var(--line);
         border-radius: 8px;
         overflow: hidden;
@@ -622,18 +693,18 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
 
       .page {
         height: calc(100% - 58px);
-        padding: 90px 64px;
+        padding: 90px 48px;
         background:
-          linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0 42%, rgba(255, 255, 255, 0.48) 62%, rgba(255, 255, 255, 0) 100%),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0 34%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%),
           linear-gradient(180deg, #ffffff 0%, #f3f6fa 100%);
       }
 
       .popup-anchor {
         position: absolute;
-        top: 58px;
-        right: 16px;
-        width: 760px;
-        height: 520px;
+        top: 74px;
+        right: 24px;
+        width: 900px;
+        height: 636px;
         overflow: hidden;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
@@ -657,8 +728,8 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
 
       .popup-anchor img {
         display: block;
-        width: 760px;
-        height: 520px;
+        width: 900px;
+        height: 636px;
       }
     </style>
   </head>

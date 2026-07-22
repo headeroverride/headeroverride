@@ -8,7 +8,6 @@ type StoreLink = {
   key: BrowserKey;
   label: string;
   url: string;
-  reviewLabel?: string;
 };
 
 const storeLinks: StoreLink[] = [
@@ -20,13 +19,11 @@ const storeLinks: StoreLink[] = [
   {
     key: "edge",
     label: "Edge",
-    reviewLabel: "Edge Add-ons",
     url: process.env.NEXT_PUBLIC_EDGE_EXTENSION_URL ?? ""
   },
   {
     key: "firefox",
     label: "Firefox",
-    reviewLabel: "Firefox Add-ons",
     url: process.env.NEXT_PUBLIC_FIREFOX_EXTENSION_URL ?? ""
   }
 ];
@@ -76,10 +73,10 @@ export default function InstallButton() {
     return storeLinks.find((store) => store.key === detectedBrowser && store.url) ?? null;
   }, [detectedBrowser, isDetected]);
 
-  if (isDetected && detectedStore && !detectedStore.url && detectedStore.reviewLabel) {
+  if (isDetected && detectedStore && !detectedStore.url) {
     return (
       <p className="install-status" role="status">
-        {detectedStore.label} support is in progress and currently under {detectedStore.reviewLabel} review.
+        {detectedStore.label} is supported. The install link is not configured yet.
       </p>
     );
   }

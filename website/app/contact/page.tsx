@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 const githubUrl = "https://github.com/headeroverride/headeroverride";
 const linkedInUrl =
   "https://www.linkedin.com/in/orest-kreminskyi-33852065/";
-const youtubeUrl = "https://www.youtube.com/watch?v=3nKLDLxxrcI";
+const youtubeUrl = "https://www.youtube.com/@HeaderOverrideExtension";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -102,7 +102,7 @@ export default function ContactPage() {
         <p className="eyebrow">Contact</p>
         <h1 className="support-title">Contact Header Override</h1>
         <p className="support-contact-copy">
-          Header Override is maintained and supported by{" "}
+          Header Override is developed and maintained by{" "}
           <strong>Orest Kreminskyi</strong>.{" "}
           You can find me on{" "}
           <a href={linkedInUrl} target="_blank" rel="noreferrer">
@@ -130,9 +130,9 @@ export default function ContactPage() {
           </section>
 
           <section>
-            <h2>YouTube demo</h2>
+            <h2>YouTube channel</h2>
             <p>
-              Watch the Header Override walkthrough on{" "}
+              Follow Header Override updates on{" "}
               <a href={youtubeUrl} target="_blank" rel="noreferrer">
                 YouTube
               </a>
