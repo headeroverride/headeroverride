@@ -94,7 +94,7 @@ const softwareJsonLd = {
   },
   isAccessibleForFree: true,
   privacyPolicy: "https://headeroverride.com/privacy",
-  softwareVersion: "1.0.3",
+  softwareVersion: "1.0.4",
   featureList: [
     "Modify HTTP request headers",
     "Modify HTTP response headers",

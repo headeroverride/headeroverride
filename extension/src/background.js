@@ -1,10 +1,8 @@
-import "./config.js";
-
 const STORAGE_KEY = "headerOverrideRules";
 const SYNC_STATUS_KEY = "headerOverrideSyncStatus";
 const STORAGE_SCHEMA_VERSION = 2;
 const DEFAULT_PROFILE_ID = "default";
-const MAX_PROFILES = globalThis.HEADER_OVERRIDE_CONFIG.maxProfiles;
+const MAX_PROFILES = 5;
 const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 let syncInFlight = false;
 let syncPending = false;

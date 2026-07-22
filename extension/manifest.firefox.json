@@ -17,7 +17,19 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "scripts": [
+      "src/background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "header-override@orest.dev",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
   },
   "action": {
     "default_title": "Header Override",
