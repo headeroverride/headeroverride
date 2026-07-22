@@ -74,7 +74,7 @@ export default function PrivacyPage() {
             </a>
             <a
               className="nav-link"
-              href="https://www.youtube.com/watch?v=3nKLDLxxrcI"
+              href="https://www.youtube.com/@HeaderOverrideExtension"
               target="_blank"
               rel="noreferrer"
             >

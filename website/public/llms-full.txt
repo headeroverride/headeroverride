@@ -3,7 +3,7 @@
 > Canonical website: https://headeroverride.com/
 > LLM index: https://headeroverride.com/llms.txt
 
-Header Override is a lightweight browser extension for modifying HTTP headers and cookies with local rules.
+Header Override is a browser extension for modifying HTTP headers and cookies with local rules.
 
 ## Product Summary
 
@@ -16,6 +16,7 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - Product name: Header Override
 - Category: Browser extension, developer tool, HTTP header and cookie modifier
 - Primary use: Modify HTTP headers and cookies with scoped local rules
+- Supported browsers: Chrome, Edge, Firefox
 - Data handling: Local browser extension storage only
 - Tracking: No analytics, no advertising, no tracking
 - Current version: 1.0.4
@@ -23,7 +24,7 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - Main developer: Orest Kreminskyi
 - Developer LinkedIn: https://www.linkedin.com/in/orest-kreminskyi-33852065/
 - GitHub repository: https://github.com/headeroverride/headeroverride
-- YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+- YouTube channel: https://www.youtube.com/@HeaderOverrideExtension
 - Support contact: support@headeroverride.com
 - Canonical website: https://headeroverride.com/
 
@@ -35,6 +36,7 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - Configure response cookie Domain, Path, SameSite, Lifetime, Max-Age, and Secure attributes.
 - Create up to five local profiles for different projects, accounts, or test setups.
 - Import and export selected profiles as local JSON files.
+- Use Header Override in Chrome, Edge, and Firefox.
 - Scope matching rules with browser-supported URL filter patterns.
 - Enable, disable, delete, and annotate rules with comments.
 - Store rules locally in browser extension storage.
@@ -92,7 +94,7 @@ LinkedIn: https://www.linkedin.com/in/orest-kreminskyi-33852065/
 
 GitHub repository: https://github.com/headeroverride/headeroverride
 
-YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+YouTube channel: https://www.youtube.com/@HeaderOverrideExtension
 
 For support or enhancement requests, email support@headeroverride.com.
 
@@ -111,6 +113,6 @@ Do not send passwords, access tokens, cookies, private header values, or other s
 - Contact: https://headeroverride.com/contact
 - Markdown contact page: https://headeroverride.com/contact.md
 - GitHub repository: https://github.com/headeroverride/headeroverride
-- YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+- YouTube channel: https://www.youtube.com/@HeaderOverrideExtension
 - Sitemap: https://headeroverride.com/sitemap.xml
 - Robots policy: https://headeroverride.com/robots.txt

@@ -1,5 +1,6 @@
 import ScreenshotSwiper from "./ScreenshotSwiper";
 import InstallButton from "./InstallButton";
+import WorkflowSwiper from "./WorkflowSwiper";
 
 const features = [
   {
@@ -21,6 +22,10 @@ const features = [
   {
     title: "Import and export",
     body: "Move selected profiles between browsers with local JSON import and export."
+  },
+  {
+    title: "Supported browsers",
+    body: "Use Header Override in Chrome, Edge, and Firefox."
   },
   {
     title: "Keep rules tidy",
@@ -69,12 +74,17 @@ const softwareJsonLd = {
   name: "Header Override",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "Modern desktop browsers",
+  browserRequirements: "Chrome, Edge, and Firefox",
   url: "https://headeroverride.com",
   description:
     "Header Override is a browser extension to modify HTTP headers and cookies with local rules for API debugging, staging, and QA workflows.",
   image: "https://headeroverride.com/screenshots/marquee-1400x560.png",
   screenshot: [
-    "https://headeroverride.com/screenshots/screenshot-1280x800.png",
+    "https://headeroverride.com/screenshots/feature-headers-1280x800.png",
+    "https://headeroverride.com/screenshots/feature-cookies-1280x800.png",
+    "https://headeroverride.com/screenshots/feature-profiles-1280x800.png",
+    "https://headeroverride.com/screenshots/feature-url-filters-1280x800.png",
+    "https://headeroverride.com/screenshots/profile-dropdown-zoom.png",
     "https://headeroverride.com/screenshots/url-filter-syntax.png"
   ],
   offers: {
@@ -93,6 +103,7 @@ const softwareJsonLd = {
     "Override response Set-Cookie headers",
     "Create up to five local rule profiles",
     "Import and export selected profiles as JSON",
+    "Use in Chrome, Edge, and Firefox",
     "Scope rules with URL filter patterns",
     "Enable, disable, add, and delete rules",
     "Store rules locally in the browser"
@@ -122,7 +133,7 @@ const videoJsonLd = {
   name: "Header Override demo",
   description:
     "A short demo showing how to modify headers with Header Override and verify request headers in the browser Network tab.",
-  thumbnailUrl: "https://headeroverride.com/screenshots/screenshot-1280x800.png",
+  thumbnailUrl: "https://headeroverride.com/screenshots/feature-headers-1280x800.png",
   uploadDate: "2026-07-17T00:00:00Z",
   duration: "PT28S",
   contentUrl: "https://headeroverride.com/video/header-override-demo.mp4",
@@ -183,7 +194,7 @@ export default function Home() {
             </a>
             <a
               className="nav-link"
-              href="https://www.youtube.com/watch?v=3nKLDLxxrcI"
+              href="https://www.youtube.com/@HeaderOverrideExtension"
               target="_blank"
               rel="noreferrer"
             >
@@ -196,17 +207,29 @@ export default function Home() {
           <div className="hero-copy">
             <h1>Header Override</h1>
             <p className="lede">
-              An easy-to-use, lightweight browser extension to modify headers
-              and cookies with local rules.
+              A browser extension for modifying headers and cookies with
+              switchable profiles.
             </p>
             <div className="actions">
               <InstallButton />
             </div>
-            <div className="trust-row" aria-label="Extension facts">
-              <span>Local rules</span>
-              <span>Profiles</span>
-              <span>No tracking</span>
-              <span>Manifest V3</span>
+            <div className="trust-rows" aria-label="Extension facts">
+              <div className="trust-row" aria-label="Supported browsers">
+                <span>Chrome</span>
+                <span>Edge</span>
+                <span>Firefox</span>
+              </div>
+              <div className="trust-row-compact" aria-label="Product facts">
+                <div>
+                  <span>Request headers</span>
+                  <span>Response headers</span>
+                  <span>Request cookies</span>
+                  <span>Response cookies</span>
+                </div>
+                <div>
+                  <span>Import/export profiles</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -253,66 +276,27 @@ export default function Home() {
       <section className="section screenshots-section">
         <div className="section-head">
           <p className="eyebrow">Screenshots</p>
-          <h2>See the extension where the work happens.</h2>
+          <h2>See the new rule modes in the popup.</h2>
+          <p>
+            The updated flow separates request headers, response headers,
+            request cookies, response cookies, and profiles so every local
+            override has a clear home.
+          </p>
         </div>
         <ScreenshotSwiper />
       </section>
 
       <section className="section workflow">
         <div className="section-head">
-          <p className="eyebrow">Example rule</p>
+          <p className="eyebrow">Real extension UI</p>
           <h2>A fast way to switch a test setup.</h2>
+          <p>
+            The profile dropdown and header rules are shown from actual
+            extension captures, with the same popup layout users see in the
+            browser.
+          </p>
         </div>
-        <div className="extension-rule-card" aria-label="Example Header Override rule">
-          <div className="extension-rule-top">
-            <div className="extension-brand">
-              <img src="/icons/icon-128.png" alt="" width="22" height="22" />
-              <strong>Header Override</strong>
-            </div>
-            <div className="extension-profile-chip" aria-hidden="true">
-              <span>Staging QA</span>
-              <span>2 rules</span>
-            </div>
-          </div>
-          <div className="extension-tabs" aria-hidden="true">
-            <span className="is-active">Headers <strong>1</strong></span>
-            <span>Cookies <strong>1</strong></span>
-          </div>
-          <div className="extension-section-label">Request</div>
-          <div className="extension-rule-head">
-            <span>On</span>
-            <span>Header</span>
-            <span>Value</span>
-            <span>URL</span>
-            <span>Comment</span>
-            <span></span>
-          </div>
-          <div className="extension-rule-row">
-            <span className="checkmark" aria-hidden="true">
-              ✓
-            </span>
-            <span className="field">X-Debug-Mode</span>
-            <span className="field">true</span>
-            <span className="field">|https://api.example.com/*</span>
-            <span className="field comment-field">Staging API checks</span>
-            <span className="delete-mark" aria-hidden="true">
-              x
-            </span>
-          </div>
-          <div className="extension-section-label response-label">Response</div>
-          <div className="extension-rule-row">
-            <span className="checkmark" aria-hidden="true">
-              ✓
-            </span>
-            <span className="field">Set-Cookie</span>
-            <span className="field">qa_mode=true; Secure</span>
-            <span className="field">|https://app.example.com/*</span>
-            <span className="field comment-field">Browser flag</span>
-            <span className="delete-mark" aria-hidden="true">
-              x
-            </span>
-          </div>
-        </div>
+        <WorkflowSwiper />
       </section>
 
       <section className="section use-section">

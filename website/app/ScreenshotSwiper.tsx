@@ -4,18 +4,25 @@ import { useState } from "react";
 
 const screenshots = [
   {
-    src: "/screenshots/promo-440x280.png",
-    alt: "Header Override promo tile showing the extension icon and browser header rule workflow",
-    label: "Promo tile",
-    width: 440,
-    height: 280
+    src: "/screenshots/feature-headers-1280x800.png",
+    alt: "Header Override screenshot showing request header and response header rules in the extension popup",
+    label: "Request and response headers",
+    width: 1280,
+    height: 800
   },
   {
-    src: "/screenshots/screenshot-640x400.png",
-    alt: "Compact Header Override screenshot showing request header rule controls",
-    label: "Compact popup",
-    width: 640,
-    height: 400
+    src: "/screenshots/feature-cookies-1280x800.png",
+    alt: "Header Override screenshot showing request cookies and response cookie attributes including Domain, Path, SameSite, Lifetime, Max-Age, and Secure",
+    label: "Request and response cookies",
+    width: 1280,
+    height: 800
+  },
+  {
+    src: "/screenshots/feature-profiles-1280x800.png",
+    alt: "Header Override screenshot showing local profiles with import and export controls",
+    label: "Profiles, import, and export",
+    width: 1280,
+    height: 800
   },
   {
     src: "/screenshots/url-filter-syntax.png",
@@ -41,6 +48,9 @@ export default function ScreenshotSwiper() {
   return (
     <div className="screenshot-swiper" aria-roledescription="carousel">
       <div className="swiper-frame">
+        <button type="button" className="swiper-arrow previous" onClick={showPrevious} aria-label="Show previous screenshot">
+          ‹
+        </button>
         {screenshots.map((screenshot, index) => (
           <figure
             className={`swiper-slide${index === activeIndex ? " active" : ""}`}
@@ -56,11 +66,11 @@ export default function ScreenshotSwiper() {
             <figcaption>{screenshot.label}</figcaption>
           </figure>
         ))}
+        <button type="button" className="swiper-arrow next" onClick={showNext} aria-label="Show next screenshot">
+          ›
+        </button>
       </div>
       <div className="swiper-controls">
-        <button type="button" className="swiper-arrow" onClick={showPrevious} aria-label="Show previous screenshot">
-          ‹
-        </button>
         <div className="swiper-dots" role="tablist" aria-label="Extension screenshots">
           {screenshots.map((screenshot, index) => (
             <button
@@ -74,9 +84,6 @@ export default function ScreenshotSwiper() {
             />
           ))}
         </div>
-        <button type="button" className="swiper-arrow" onClick={showNext} aria-label="Show next screenshot">
-          ›
-        </button>
       </div>
       <p className="swiper-caption">{activeScreenshot.label}</p>
     </div>

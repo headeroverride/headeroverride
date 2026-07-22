@@ -1,6 +1,6 @@
 # Header Override
 
-Header Override is a lightweight browser extension for modifying HTTP headers and cookies with local rules.
+Header Override is a browser extension for modifying HTTP headers and cookies with local rules.
 
 ## Overview
 
@@ -16,6 +16,7 @@ Rules are stored locally in the user's browser and applied only to matching requ
 - Configure response cookie Domain, Path, SameSite, Lifetime, Max-Age, and Secure attributes.
 - Create up to five local profiles for different projects, accounts, or test setups.
 - Import and export selected profiles as local JSON files.
+- Use Header Override in Chrome, Edge, and Firefox.
 - Scope matching rules with browser-supported URL filter patterns.
 - Enable, disable, delete, and annotate rules with comments.
 - Store rules locally in browser extension storage.
@@ -53,7 +54,7 @@ Header Override needs host access so browser-supported rules can apply to the UR
 - Privacy policy: https://headeroverride.com/privacy
 - Contact: https://headeroverride.com/contact
 - GitHub repository: https://github.com/headeroverride/headeroverride
-- YouTube demo: https://www.youtube.com/watch?v=3nKLDLxxrcI
+- YouTube channel: https://www.youtube.com/@HeaderOverrideExtension
 - Sitemap: https://headeroverride.com/sitemap.xml
 - Robots policy: https://headeroverride.com/robots.txt
 - LLM index: https://headeroverride.com/llms.txt
