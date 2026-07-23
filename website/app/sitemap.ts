@@ -5,7 +5,7 @@ const baseUrl = "https://headeroverride.com";
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const latestContentModified = new Date("2026-07-22");
+  const latestContentModified = new Date("2026-07-23");
 
   return [
     {
@@ -26,6 +26,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
           tag: "browser extension"
         }
       ]
+    },
+    {
+      url: `${baseUrl}/modheader-alternative`,
+      lastModified: latestContentModified,
+      changeFrequency: "weekly",
+      priority: 0.9
     },
     {
       url: `${baseUrl}/privacy`,

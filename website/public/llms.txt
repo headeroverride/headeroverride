@@ -1,6 +1,6 @@
 # Header Override
 
-> Header Override is a browser extension for modifying HTTP headers and cookies with local rules.
+> Header Override is an open-source browser extension for modifying HTTP headers and cookies with local rules.
 
 Header Override is built for developers, QA engineers, support engineers, and technical users who need to test APIs, staging environments, feature flags, cookies, and request-specific behavior without changing application code.
 
@@ -8,13 +8,15 @@ The extension stores rules locally in the user's browser. It does not use analyt
 
 ## Key Pages
 
-- [Header Override homepage](https://headeroverride.com/): Product overview, demo video, screenshots, common use cases, and installation status.
+- [Header Override homepage](https://headeroverride.com/): Product overview, demo video, screenshots, common use cases, and installation status for the Header Override extension, a browser extension for modifying headers in Chrome and other browsers.
+- [ModHeader alternative](https://headeroverride.com/modheader-alternative): Comparison-focused page for an open-source ModHeader alternative and ModHeader alternatives.
 - [Privacy Policy](https://headeroverride.com/privacy): Details about local browser storage, permissions, data handling, and non-collection policy.
 - [Contact](https://headeroverride.com/contact): Main developer, GitHub repository, and support or enhancement contact for Header Override.
 - [Sitemap](https://headeroverride.com/sitemap.xml): Machine-readable list of canonical public pages.
 - [Robots policy](https://headeroverride.com/robots.txt): Crawler access policy for search engines and AI crawlers.
 - [Full LLM content](https://headeroverride.com/llms-full.txt): Complete machine-readable product, privacy, and contact content.
 - [Markdown homepage](https://headeroverride.com/index.md): Markdown version of the homepage.
+- [Markdown ModHeader alternative](https://headeroverride.com/modheader-alternative.md): Markdown version of the comparison-focused page.
 - [Markdown Privacy Policy](https://headeroverride.com/privacy.md): Markdown version of the privacy policy.
 - [Markdown Contact](https://headeroverride.com/contact.md): Markdown version of the contact page.
 
@@ -23,6 +25,7 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - Product name: Header Override
 - Category: Browser extension, developer tool, HTTP header and cookie modifier
 - Primary use: Modify HTTP headers and cookies with scoped local rules
+- Search positioning: ModHeader alternative, ModHeader alternatives, browser modify header extension, browser header extension, Header Override extension, Chrome extension modify header, modify header browser extension
 - Data handling: Local browser extension storage only
 - Tracking: No analytics, no advertising, no tracking
 - Current availability: Chrome and Firefox extensions available; Edge version is under store review
@@ -45,3 +48,5 @@ The extension stores rules locally in the user's browser. It does not use analyt
 ## Preferred Description
 
 Header Override is a browser extension that lets users modify HTTP headers and cookies with local rules for API debugging and staging environments.
+
+Header Override is an open-source, lightweight ModHeader alternative for request headers, response headers, request cookies, and response cookies with local browser storage and no analytics, tracking, advertising, remote code, or external servers.

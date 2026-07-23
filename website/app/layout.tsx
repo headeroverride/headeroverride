@@ -4,7 +4,7 @@ import "./globals.css";
 
 const siteUrl = "https://headeroverride.com";
 const siteDescription =
-  "Modify HTTP headers and cookies with local rules. Header Override is a browser extension for API debugging and staging environments.";
+  "Modify HTTP headers and cookies with local rules. Header Override is an open-source browser extension for API debugging and staging environments.";
 const socialImage = {
   url: "/screenshots/marquee-1400x560.png",
   width: 1400,
@@ -26,7 +26,16 @@ export const metadata: Metadata = {
   category: "Developer Tools",
   keywords: [
     "Header Override",
+    "ModHeader alternative",
+    "modheader alternatives",
+    "alternative to ModHeader",
+    "open source ModHeader alternative",
+    "open source header extension",
     "request header extension",
+    "browser modify header extension",
+    "modify header browser extension",
+    "Header Override extension",
+    "Chrome extension modify header",
     "modify header",
     "modify headers",
     "HTTP header modifier",

@@ -34,7 +34,7 @@ export default {
 
     if (markdownPath) {
       headers.set("Content-Type", "text/markdown; charset=utf-8");
-      headers.set("X-Robots-Tag", "noindex, nofollow");
+      headers.set("X-Robots-Tag", "noindex, follow");
     }
 
     if (url.pathname.startsWith("/_next/static/")) {
@@ -60,6 +60,7 @@ export default {
 
 const markdownRoutes = new Map([
   ["/", "/index.md"],
+  ["/modheader-alternative", "/modheader-alternative.md"],
   ["/privacy", "/privacy.md"]
 ]);
 

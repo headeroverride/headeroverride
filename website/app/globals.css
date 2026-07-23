@@ -285,12 +285,19 @@ h3 {
   color: var(--muted);
 }
 
-.feature-section {
+.overview-section,
+.features-section,
+.alternative-section {
   display: grid;
   grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
   gap: clamp(28px, 5vw, 58px);
   align-items: start;
   border-top: 1px solid var(--line);
+}
+
+.alternative-section > p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .list-grid {
@@ -317,17 +324,28 @@ h3 {
   font-size: 18px;
 }
 
-.screenshots-section {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
-  gap: clamp(28px, 5vw, 58px);
-  align-items: start;
-  border-top: 1px solid var(--line);
-}
-
 .screenshot-swiper {
   min-width: 0;
   width: min(100%, 820px);
+}
+
+.plain-feature-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 36px;
+}
+
+.plain-feature {
+  min-width: 0;
+}
+
+.plain-feature h3 {
+  font-size: 19px;
+}
+
+.plain-feature p {
+  margin: 8px 0 0;
+  color: var(--muted);
 }
 
 .swiper-frame {
@@ -716,11 +734,37 @@ h3 {
 
 .legal-lede a,
 .support-contact-copy a,
-.legal-content a {
+.legal-content a,
+.inline-link {
   color: var(--accent-dark);
   font-weight: 760;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.comparison-hero {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.92fr) minmax(360px, 1.08fr);
+  gap: clamp(32px, 5vw, 68px);
+  align-items: center;
+}
+
+.comparison-preview {
+  transform: none;
+}
+
+.comparison-copy {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(28px, 5vw, 58px);
+  align-items: start;
+  border-top: 1px solid var(--line);
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .support-contact-copy {
@@ -749,8 +793,11 @@ h3 {
 
 @media (max-width: 900px) {
   .hero-grid,
-  .feature-section,
-  .screenshots-section,
+  .comparison-hero,
+  .comparison-copy,
+  .overview-section,
+  .features-section,
+  .alternative-section,
   .workflow,
   .use-section,
   .faq-section,
@@ -796,6 +843,8 @@ h3 {
 
   .actions,
   .list-grid,
+  .comparison-grid,
+  .plain-feature-list,
   .use-list {
     grid-template-columns: 1fr;
   }

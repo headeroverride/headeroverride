@@ -52,6 +52,11 @@ const faqs = [
       "Header Override helps developers, QA teams, and support engineers modify HTTP headers and cookies from the browser for scoped debugging and testing workflows."
   },
   {
+    question: "Is Header Override an alternative to ModHeader?",
+    answer:
+      "Yes. Header Override is an open-source, lightweight ModHeader alternative for modifying request headers, response headers, request cookies, and response cookies with local browser rules."
+  },
+  {
     question: "Are rules sent to a server?",
     answer:
       "No. Rules are stored locally in browser extension storage and are used only to apply the header or cookie changes you configure."
@@ -207,8 +212,8 @@ export default function Home() {
           <div className="hero-copy">
             <h1>Header Override</h1>
             <p className="lede">
-              A browser extension for modifying headers and cookies with
-              switchable profiles.
+              An open-source browser extension to modify headers and cookies
+              with switchable local profiles.
             </p>
             <div className="actions">
               <InstallButton />
@@ -252,38 +257,38 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section feature-section">
+      <section className="section overview-section">
         <div className="section-intro">
           <p className="eyebrow">Built for debugging</p>
-          <h2>One small tool for header and cookie changes.</h2>
+          <h2>Open-source browser extension to modify headers and cookies.</h2>
           <p>
             Header Override keeps the workflow deliberately narrow: add a rule,
             choose request or response behavior, scope it where needed, and
             let the extension apply it. Profiles keep separate projects tidy
             when one browser needs several debugging setups.
           </p>
+          <p>
+            Use the Header Override extension in Chrome and other browsers to
+            modify headers with local rules for API debugging, staging checks,
+            and QA workflows.
+          </p>
         </div>
-        <div className="list-grid">
+        <ScreenshotSwiper />
+      </section>
+
+      <section className="section features-section">
+        <div className="section-head">
+          <p className="eyebrow">Feature set</p>
+          <h2>Features</h2>
+        </div>
+        <div className="plain-feature-list">
           {features.map((feature) => (
-            <article className="mini-card" key={feature.title}>
+            <article className="plain-feature" key={feature.title}>
               <h3>{feature.title}</h3>
               <p>{feature.body}</p>
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="section screenshots-section">
-        <div className="section-head">
-          <p className="eyebrow">Screenshots</p>
-          <h2>See the new rule modes in the popup.</h2>
-          <p>
-            The updated flow separates request headers, response headers,
-            request cookies, response cookies, and profiles so every local
-            override has a clear home.
-          </p>
-        </div>
-        <ScreenshotSwiper />
       </section>
 
       <section className="section workflow">
@@ -297,6 +302,22 @@ export default function Home() {
           </p>
         </div>
         <WorkflowSwiper />
+      </section>
+
+      <section className="section alternative-section">
+        <div className="section-head">
+          <p className="eyebrow">ModHeader alternative</p>
+          <h2>Open-source ModHeader alternative for local header and cookie overrides.</h2>
+        </div>
+        <p>
+          Header Override is open source and keeps rules in local browser
+          storage, making it a lightweight alternative to ModHeader for scoped
+          request headers, response headers, and cookies.{" "}
+          <a className="inline-link" href="/modheader-alternative">
+            Compare Header Override as a ModHeader alternative
+          </a>
+          .
+        </p>
       </section>
 
       <section className="section use-section">

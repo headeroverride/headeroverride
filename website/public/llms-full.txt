@@ -3,7 +3,7 @@
 > Canonical website: https://headeroverride.com/
 > LLM index: https://headeroverride.com/llms.txt
 
-Header Override is a browser extension for modifying HTTP headers and cookies with local rules.
+Header Override is a browser extension for modifying HTTP headers and cookies with local rules. The Header Override extension modifies headers in Chrome and other browsers with local storage and no tracking. It is also an open-source, lightweight ModHeader alternative for comparisons with ModHeader alternatives.
 
 ## Product Summary
 
@@ -16,6 +16,7 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - Product name: Header Override
 - Category: Browser extension, developer tool, HTTP header and cookie modifier
 - Primary use: Modify HTTP headers and cookies with scoped local rules
+- Search positioning: ModHeader alternative, alternative to ModHeader, ModHeader alternatives, browser modify header extension, browser header extension, Header Override extension, Chrome extension modify header, modify header browser extension
 - Supported browsers: Chrome, Edge, Firefox
 - Data handling: Local browser extension storage only
 - Tracking: No analytics, no advertising, no tracking
@@ -55,6 +56,10 @@ The extension stores rules locally in the user's browser. It does not use analyt
 ### What is Header Override used for?
 
 Header Override helps developers, QA teams, and support engineers modify HTTP headers and cookies from the browser for scoped debugging and testing workflows.
+
+### Is Header Override an alternative to ModHeader?
+
+Yes. Header Override is an open-source, focused alternative to ModHeader for modifying request headers, response headers, request cookies, and response cookies with local browser rules.
 
 ### Are rules sent to a server?
 
@@ -108,6 +113,8 @@ Do not send passwords, access tokens, cookies, private header values, or other s
 
 - Homepage: https://headeroverride.com/
 - Markdown homepage: https://headeroverride.com/index.md
+- ModHeader alternative: https://headeroverride.com/modheader-alternative
+- Markdown ModHeader alternative: https://headeroverride.com/modheader-alternative.md
 - Privacy policy: https://headeroverride.com/privacy
 - Markdown privacy policy: https://headeroverride.com/privacy.md
 - Contact: https://headeroverride.com/contact
