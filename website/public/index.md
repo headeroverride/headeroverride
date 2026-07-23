@@ -1,10 +1,14 @@
 # Header Override
 
-Header Override is a browser extension for modifying HTTP headers and cookies with local rules.
+Header Override is an open-source browser extension to modify headers and cookies with switchable local profiles.
 
 ## Overview
 
 Header Override helps developers, QA engineers, support engineers, and technical users test APIs, staging environments, feature flags, cookies, and request-specific behavior without changing application code.
+
+Use the Header Override extension in Chrome and other browsers to modify headers with local rules for API debugging, staging checks, and QA workflows.
+
+Header Override is an open-source, lightweight ModHeader alternative for users who want scoped local header and cookie overrides without analytics, tracking, remote code, or account-based workflows.
 
 Rules are stored locally in the user's browser and applied only to matching requests. Header Override does not use analytics, tracking, advertising, remote code, external servers, or third-party data sharing.
 
@@ -36,6 +40,10 @@ Rules are stored locally in the user's browser and applied only to matching requ
 
 Header Override helps developers, QA teams, and support engineers modify HTTP headers and cookies from the browser for scoped debugging and testing workflows.
 
+### Is Header Override an alternative to ModHeader?
+
+Yes. Header Override is an open-source, focused alternative to ModHeader for modifying request headers, response headers, request cookies, and response cookies with local browser rules.
+
 ### Are rules sent to a server?
 
 No. Rules are stored locally in browser extension storage and are used only to apply the header or cookie changes you configure.
@@ -51,6 +59,7 @@ Header Override needs host access so browser-supported rules can apply to the UR
 ## Links
 
 - Website: https://headeroverride.com/
+- ModHeader alternative: https://headeroverride.com/modheader-alternative
 - Privacy policy: https://headeroverride.com/privacy
 - Contact: https://headeroverride.com/contact
 - GitHub repository: https://github.com/headeroverride/headeroverride
