@@ -535,7 +535,7 @@ h1 {
   align-items: flex-end;
   justify-content: space-between;
   gap: 6px;
-  margin-bottom: 0;
+  margin-bottom: 4px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -552,7 +552,7 @@ h1 {
   align-items: center;
   gap: 5px;
   min-height: 30px;
-  padding: 5px 7px 8px;
+  padding: 5px 7px 8px 4px;
   border: 0;
   color: var(--muted);
   background: transparent;
@@ -621,16 +621,17 @@ h1 {
 }
 
 .rule-section-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(140px, 1fr) minmax(100px, 0.72fr) minmax(155px, 1.04fr) minmax(135px, 0.95fr) 30px;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 0 2px;
+  padding: 0 10px;
 }
 
 .rule-section-title {
   display: inline-flex;
+  grid-column: 1 / -2;
   align-items: center;
   gap: 5px;
   min-width: 0;
@@ -660,6 +661,7 @@ h1 {
 
 .section-add-button {
   display: inline-grid;
+  justify-self: end;
   place-items: center;
   width: 24px;
   height: 24px;
@@ -693,25 +695,46 @@ h1 {
   min-height: 0;
   overflow-y: auto;
   padding-top: 10px;
-  padding-right: 2px;
+  padding-right: 0;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(102, 112, 133, 0.55) transparent;
+  scrollbar-width: thin;
+}
+
+.rules-shell::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rules-shell::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rules-shell::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(102, 112, 133, 0.55);
 }
 
 .rules-head,
 .header-rule-main,
 .cookie-primary {
   display: grid;
-  grid-template-columns: 32px minmax(140px, 1fr) minmax(100px, 0.72fr) minmax(155px, 1.04fr) minmax(135px, 0.95fr) 30px;
+  grid-template-columns: 24px minmax(140px, 1fr) minmax(100px, 0.72fr) minmax(155px, 1.04fr) minmax(135px, 0.95fr) 30px;
   gap: 6px;
   align-items: center;
 }
 
 .rules-head {
-  padding: 0 8px 6px;
+  padding: 0 6px 6px 10px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.rules-head > span:first-child {
+  justify-self: center;
+  transform: translateX(-2px);
 }
 
 .url-heading {

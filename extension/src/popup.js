@@ -712,6 +712,7 @@ function renderSectionHead(kind) {
 
 function renderHeaderRule(rule) {
   const node = headerTemplate.content.firstElementChild.cloneNode(true);
+  const row = node.querySelector(".header-rule-main");
   const enabled = node.querySelector(".enabled");
   const header = node.querySelector(".header");
   const value = node.querySelector(".value");
@@ -727,6 +728,7 @@ function renderHeaderRule(rule) {
   updateCommentStyle(comment);
 
   enabled?.addEventListener("change", () => updateRule(rule.id, { enabled: enabled.checked }));
+  bindEnabledColumnToggle(row, enabled, () => updateRule(rule.id, { enabled: enabled.checked }));
   header?.addEventListener("input", () => updateRule(rule.id, { header: header.value }));
   value?.addEventListener("input", () => updateRule(rule.id, { value: value.value }));
   urlFilter?.addEventListener("input", () => updateRule(rule.id, { urlFilter: urlFilter.value }));
@@ -742,6 +744,7 @@ function renderHeaderRule(rule) {
 function renderCookieRule(rule) {
   const node = cookieTemplate.content.firstElementChild.cloneNode(true);
   const kind = getRuleKind(rule);
+  const row = node.querySelector(".cookie-primary");
   const enabled = node.querySelector(".enabled");
   const name = node.querySelector(".name");
   const value = node.querySelector(".value");
@@ -776,6 +779,7 @@ function renderCookieRule(rule) {
   updateCommentStyle(comment);
 
   enabled?.addEventListener("change", () => updateRule(rule.id, { enabled: enabled.checked }));
+  bindEnabledColumnToggle(row, enabled, () => updateRule(rule.id, { enabled: enabled.checked }));
   name?.addEventListener("input", () => updateRule(rule.id, { name: name.value }));
   value?.addEventListener("input", () => updateRule(rule.id, { value: value.value }));
   comment?.addEventListener("input", () => {
@@ -814,6 +818,40 @@ function renderCookieRule(rule) {
   deleteButton?.addEventListener("click", () => deleteRule(rule.id));
 
   return node;
+}
+
+function bindEnabledColumnToggle(row, enabled, onToggle) {
+  if (!row || !enabled) {
+    return;
+  }
+
+  row.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : event.target.parentElement;
+
+    if (target?.closest("input, select, button, textarea, a")) {
+      return;
+    }
+
+    const firstField = enabled.nextElementSibling;
+
+    if (!firstField) {
+      return;
+    }
+
+    const rowRect = row.getBoundingClientRect();
+    const firstFieldRect = firstField.getBoundingClientRect();
+    const isInEnabledColumn = event.clientX >= rowRect.left
+      && event.clientX < firstFieldRect.left
+      && event.clientY >= rowRect.top
+      && event.clientY <= rowRect.bottom;
+
+    if (!isInEnabledColumn) {
+      return;
+    }
+
+    enabled.checked = !enabled.checked;
+    onToggle();
+  });
 }
 
 function updateCookieDirection(node, ruleId, kind, sessionValue) {
