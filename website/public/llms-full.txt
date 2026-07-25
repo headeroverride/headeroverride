@@ -3,7 +3,7 @@
 > Canonical website: https://headeroverride.com/
 > LLM index: https://headeroverride.com/llms.txt
 
-Header Override is a browser extension for modifying HTTP headers and cookies with local rules. The Header Override extension modifies headers in Chrome and other browsers with local storage and no tracking. It is also an open-source, lightweight ModHeader alternative for comparisons with ModHeader alternatives.
+Header Override is a browser extension for modifying HTTP headers and cookies with local rules. The Header Override extension modifies headers in Chrome, Edge, and Firefox with local storage and no tracking. It is also an open-source, lightweight ModHeader alternative for comparisons with ModHeader alternatives.
 
 ## Product Summary
 
@@ -28,6 +28,12 @@ The extension stores rules locally in the user's browser. It does not use analyt
 - YouTube channel: https://www.youtube.com/@HeaderOverrideExtension
 - Support contact: support@headeroverride.com
 - Canonical website: https://headeroverride.com/
+
+## Install Links
+
+- Chrome Web Store: https://chromewebstore.google.com/detail/gkobmjeklkiepibofnghbkcjiphjacfm?utm_source=website
+- Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/albhpnnccbkfkloddpaecdmhpnmnldhn?utm_source=website
+- Firefox Add-ons: https://addons.mozilla.org/en-US/firefox/addon/headeroverride?utm_source=website
 
 ## Features
 

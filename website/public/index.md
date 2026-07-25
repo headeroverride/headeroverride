@@ -6,7 +6,7 @@ Header Override is an open-source browser extension to modify headers and cookie
 
 Header Override helps developers, QA engineers, support engineers, and technical users test APIs, staging environments, feature flags, cookies, and request-specific behavior without changing application code.
 
-Use the Header Override extension in Chrome and other browsers to modify headers with local rules for API debugging, staging checks, and QA workflows.
+Use the Header Override extension in Chrome, Edge, and Firefox to modify headers with local rules for API debugging, staging checks, and QA workflows.
 
 Header Override is an open-source, lightweight ModHeader alternative for users who want scoped local header and cookie overrides without analytics, tracking, remote code, or account-based workflows.
 
@@ -25,6 +25,12 @@ Rules are stored locally in the user's browser and applied only to matching requ
 - Enable, disable, delete, and annotate rules with comments.
 - Store rules locally in browser extension storage.
 - Use Manifest V3 browser extension APIs.
+
+## Install Links
+
+- Chrome Web Store: https://chromewebstore.google.com/detail/gkobmjeklkiepibofnghbkcjiphjacfm?utm_source=website
+- Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/albhpnnccbkfkloddpaecdmhpnmnldhn?utm_source=website
+- Firefox Add-ons: https://addons.mozilla.org/en-US/firefox/addon/headeroverride?utm_source=website
 
 ## Common Use Cases
 

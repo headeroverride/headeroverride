@@ -19,7 +19,7 @@ const storeLinks: StoreLink[] = [
   {
     key: "edge",
     label: "Edge",
-    url: ""
+    url: process.env.NEXT_PUBLIC_EDGE_EXTENSION_URL ?? ""
   },
   {
     key: "firefox",
@@ -58,7 +58,6 @@ export default function InstallButton() {
   const [detectedBrowser, setDetectedBrowser] = useState<BrowserKey | null>(null);
   const [isDetected, setIsDetected] = useState(false);
   const fallbackStore = storeLinks.find((store) => store.key === "chrome" && store.url);
-  const detectedStore = storeLinks.find((store) => store.key === detectedBrowser);
 
   useEffect(() => {
     setDetectedBrowser(getDetectedBrowser(window.navigator.userAgent));
@@ -73,45 +72,24 @@ export default function InstallButton() {
     return storeLinks.find((store) => store.key === detectedBrowser && store.url) ?? null;
   }, [detectedBrowser, isDetected]);
 
-  if (isDetected && detectedStore && !detectedStore.url) {
-    return (
-      <p className="install-status" role="status">
-        {detectedStore.label} support is ready and currently under store review.
-      </p>
-    );
-  }
-
   if (!selectedStore && !fallbackStore) {
     return null;
   }
 
-  if (!selectedStore) {
-    const store = fallbackStore;
+  const primaryStore = selectedStore ?? fallbackStore;
 
-    if (!store) {
-      return null;
-    }
-
-    return (
-      <a
-        className="button primary"
-        href={withWebsiteUtm(store.url)}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Get the extension
-      </a>
-    );
+  if (!primaryStore) {
+    return null;
   }
 
   return (
     <a
       className="button primary"
-      href={withWebsiteUtm(selectedStore.url)}
+      href={withWebsiteUtm(primaryStore.url)}
       target="_blank"
       rel="noreferrer"
     >
-      Get {selectedStore.label} Extension
+      {selectedStore ? `Get ${selectedStore.label} Extension` : "Get the extension"}
     </a>
   );
 }

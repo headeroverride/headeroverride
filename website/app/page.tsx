@@ -2,6 +2,31 @@ import ScreenshotSwiper from "./ScreenshotSwiper";
 import InstallButton from "./InstallButton";
 import WorkflowSwiper from "./WorkflowSwiper";
 
+const storeLinks = [
+  {
+    label: "Chrome",
+    url: process.env.NEXT_PUBLIC_CHROME_EXTENSION_URL ?? ""
+  },
+  {
+    label: "Edge",
+    url: process.env.NEXT_PUBLIC_EDGE_EXTENSION_URL ?? ""
+  },
+  {
+    label: "Firefox",
+    url: process.env.NEXT_PUBLIC_FIREFOX_EXTENSION_URL ?? ""
+  }
+].filter((store) => store.url);
+
+function withWebsiteUtm(url: string) {
+  try {
+    const storeUrl = new URL(url);
+    storeUrl.searchParams.set("utm_source", "website");
+    return storeUrl.toString();
+  } catch {
+    return url;
+  }
+}
+
 const features = [
   {
     title: "Split request and response",
@@ -84,6 +109,13 @@ const softwareJsonLd = {
   description:
     "Header Override is a browser extension to modify HTTP headers and cookies with local rules for API debugging, staging, and QA workflows.",
   image: "https://headeroverride.com/screenshots/marquee-1400x560.png",
+  sameAs: [
+    "https://chromewebstore.google.com/detail/gkobmjeklkiepibofnghbkcjiphjacfm?utm_source=website",
+    "https://microsoftedge.microsoft.com/addons/detail/albhpnnccbkfkloddpaecdmhpnmnldhn?utm_source=website",
+    "https://addons.mozilla.org/en-US/firefox/addon/headeroverride?utm_source=website",
+    "https://github.com/headeroverride/headeroverride",
+    "https://www.youtube.com/@HeaderOverrideExtension"
+  ],
   screenshot: [
     "https://headeroverride.com/screenshots/feature-headers-1280x800.png",
     "https://headeroverride.com/screenshots/feature-cookies-1280x800.png",
@@ -220,9 +252,11 @@ export default function Home() {
             </div>
             <div className="trust-rows" aria-label="Extension facts">
               <div className="trust-row" aria-label="Supported browsers">
-                <span>Chrome</span>
-                <span>Edge</span>
-                <span>Firefox</span>
+                {storeLinks.map((store) => (
+                  <a key={store.label} href={withWebsiteUtm(store.url)} target="_blank" rel="noreferrer">
+                    {store.label}
+                  </a>
+                ))}
               </div>
               <div className="trust-row-compact" aria-label="Product facts">
                 <div>
@@ -268,7 +302,7 @@ export default function Home() {
             when one browser needs several debugging setups.
           </p>
           <p>
-            Use the Header Override extension in Chrome and other browsers to
+            Use the Header Override extension in Chrome, Edge, and Firefox to
             modify headers with local rules for API debugging, staging checks,
             and QA workflows.
           </p>

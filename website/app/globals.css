@@ -196,7 +196,10 @@ h3 {
   gap: 8px;
 }
 
+.trust-row a,
 .trust-row span {
+  display: inline-flex;
+  align-items: center;
   padding: 6px 9px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -204,6 +207,13 @@ h3 {
   background: rgba(255, 255, 255, 0.72);
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
+}
+
+.trust-row a:hover {
+  border-color: #c6d3e3;
+  color: var(--text);
+  background: #ffffff;
 }
 
 .trust-row-compact {

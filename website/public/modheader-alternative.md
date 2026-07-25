@@ -21,6 +21,12 @@ Rules are stored locally in the user's browser and applied only to matching requ
 - Review the public source code on GitHub.
 - Use a focused browser extension with no analytics, no advertising, no tracking, and no remote code.
 
+## Install Links
+
+- Chrome Web Store: https://chromewebstore.google.com/detail/gkobmjeklkiepibofnghbkcjiphjacfm?utm_source=website
+- Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/albhpnnccbkfkloddpaecdmhpnmnldhn?utm_source=website
+- Firefox Add-ons: https://addons.mozilla.org/en-US/firefox/addon/headeroverride?utm_source=website
+
 ## FAQ
 
 ### Is Header Override an alternative to ModHeader?
