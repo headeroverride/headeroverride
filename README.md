@@ -2,12 +2,12 @@
 
 Header Override is a small browser extension for overriding request headers, response headers, request cookies, and response cookies with configurable local rules.
 
-Chrome Web Store: https://chromewebstore.google.com/detail/gkobmjeklkiepibofnghbkcjiphjacfm
-Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/albhpnnccbkfkloddpaecdmhpnmnldhn
-Firefox Add-ons: https://addons.mozilla.org/en-US/firefox/addon/headeroverride
+- Chrome Web Store: https://chromewebstore.google.com/detail/gkobmjeklkiepibofnghbkcjiphjacfm
+- Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/albhpnnccbkfkloddpaecdmhpnmnldhn
+- Firefox Add-ons: https://addons.mozilla.org/en-US/firefox/addon/headeroverride
 
-Website: https://headeroverride.com
-Website source: https://github.com/headeroverride/headeroverride.com
+- Website: https://headeroverride.com
+- Website source: https://github.com/headeroverride/headeroverride.com
 
 ## Repository layout
 
