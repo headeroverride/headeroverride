@@ -1,10 +1,31 @@
-dist/
 .DS_Store
 .idea/
-website/.next/
-website/out/
-website/node_modules/
-website/.env*.local
+
+# Dependencies
 node_modules/
+
+# Release packages
+dist/
+
+# Separate website repo
+website/
+
+# Generated assets
+assets/generated/
+
+# Test output
 playwright-report/
 test-results/
+
+# Environment files
+.env
+.env.*
+.env*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
