@@ -6,7 +6,6 @@ Header Override is a small browser extension for overriding request headers, res
 
 ```text
 extension/      Browser extension source and manifest
-website/        Public website for headeroverride.com
 assets/         Generated screenshot output
 docs/           Publishing notes and privacy policy source
 scripts/        Generated screenshot helper
@@ -34,4 +33,6 @@ Rules are saved automatically and synced into the browser's dynamic request rule
 
 ## Website
 
-The `website/` folder contains the public site for `headeroverride.com`, including the landing page and `/privacy` route.
+Website: https://headeroverride.com
+
+Website source: https://github.com/headeroverride/headeroverride.com
