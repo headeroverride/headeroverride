@@ -1,7 +1,7 @@
 {
   "name": "header-override",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "scripts": {
     "package:extension": "node scripts/package_extension.mjs all",
     "package:extension:chrome": "node scripts/package_extension.mjs chrome",
