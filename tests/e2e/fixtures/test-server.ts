@@ -27,6 +27,42 @@ export async function startTestServer(): Promise<TestServer> {
 function handleRequest(request: IncomingMessage, response: ServerResponse) {
   const url = new URL(request.url || "/", "http://127.0.0.1");
 
+  if (url.pathname === "/article/cors-api") {
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, {
+        "Access-Control-Allow-Origin": request.headers.origin || "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": request.headers["access-control-request-headers"] || "",
+        "Access-Control-Max-Age": "60"
+      });
+      response.end();
+      return;
+    }
+
+    sendJson(response, {
+      ok: true,
+      source: "article-cors-api"
+    });
+    return;
+  }
+
+  if (url.pathname === "/article/auth") {
+    const authorization = request.headers.authorization;
+    const cookie = request.headers.cookie || "";
+    const isAuthenticated = authorization === "Bearer article-test-token"
+      || cookie.includes("article_session=authenticated");
+
+    sendJson(
+      response,
+      isAuthenticated
+        ? { ok: true, source: "article-auth" }
+        : { ok: false, error: "unauthorized" },
+      isAuthenticated ? 200 : 401,
+      isAuthenticated ? {} : { "WWW-Authenticate": "Bearer" }
+    );
+    return;
+  }
+
   if (url.pathname.endsWith("/echo")) {
     sendJson(response, {
       method: request.method,
@@ -44,6 +80,19 @@ function handleRequest(request: IncomingMessage, response: ServerResponse) {
     return;
   }
 
+  if (url.pathname === "/delete-target" || url.pathname === "/delete-target/scoped") {
+    response.writeHead(200, {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-E2E-Delete-Target": "server-value",
+      "Set-Cookie": url.pathname.endsWith("/scoped")
+        ? "e2e_delete_cookie=scoped-server-value; Path=/scoped"
+        : "e2e_delete_cookie=server-value; Path=/"
+    });
+    response.end("delete target");
+    return;
+  }
+
   response.writeHead(200, {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-store"
@@ -51,10 +100,16 @@ function handleRequest(request: IncomingMessage, response: ServerResponse) {
   response.end("<!doctype html><title>Header Override E2E</title><main>Ready</main>");
 }
 
-function sendJson(response: ServerResponse, body: unknown) {
-  response.writeHead(200, {
+function sendJson(
+  response: ServerResponse,
+  body: unknown,
+  statusCode = 200,
+  additionalHeaders: Record<string, string> = {}
+) {
+  response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
+    ...additionalHeaders
   });
   response.end(JSON.stringify(body));
 }
