@@ -12,6 +12,9 @@
         <div class="brand">
           <img src="../icons/icon-32.png" alt="" aria-hidden="true">
           <h1>Header Override</h1>
+          <label class="master-toggle" title="Enable or pause all rules">
+            <input id="global-rules-toggle" type="checkbox" aria-label="All rules enabled" checked>
+          </label>
         </div>
         <div class="profile-menu">
           <span id="profile-current" class="profile-current"></span>
@@ -95,8 +98,13 @@
       <article class="rule header-rule">
         <div class="rule-main header-rule-main">
           <input class="enabled" type="checkbox" title="Enabled" aria-label="Enabled">
-          <input class="header" type="text" placeholder="Header" title="Header" aria-label="Header">
-          <input class="value" type="text" placeholder="Value" title="Value" aria-label="Value">
+          <span class="operation-field header-field">
+            <button class="operation-toggle" type="button" title="Response header operation: Set" aria-label="Response header operation: Set">=</button>
+            <input class="header" type="text" placeholder="Header" title="Header" aria-label="Header">
+          </span>
+          <span class="value-shell">
+            <input class="value" type="text" placeholder="Value" title="Value" aria-label="Value">
+          </span>
           <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
           <input class="comment" type="text" placeholder="Comment" title="Comment" aria-label="Comment">
           <button class="delete icon-button" title="Delete rule" aria-label="Delete rule">x</button>
@@ -108,8 +116,13 @@
       <article class="rule cookie-rule">
         <div class="cookie-row cookie-primary">
           <input class="enabled" type="checkbox" title="Enabled" aria-label="Enabled">
-          <input class="name" type="text" placeholder="Name" title="Cookie name" aria-label="Cookie name">
-          <input class="value" type="text" placeholder="Value" title="Cookie value" aria-label="Cookie value">
+          <span class="operation-field name-field">
+            <button class="operation-toggle" type="button" title="Response cookie operation: Add" aria-label="Response cookie operation: Add">+</button>
+            <input class="name" type="text" placeholder="Name" title="Cookie name" aria-label="Cookie name">
+          </span>
+          <span class="value-shell">
+            <input class="value" type="text" placeholder="Value" title="Cookie value" aria-label="Cookie value">
+          </span>
           <input class="cookie-url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
           <input class="comment" type="text" placeholder="Comment" title="Comment" aria-label="Comment">
           <button class="delete icon-button" title="Delete rule" aria-label="Delete rule">x</button>

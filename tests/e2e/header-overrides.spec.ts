@@ -111,6 +111,759 @@ test("appends configured response cookies and stores them in the browser", async
   }
 });
 
+test("cycles compact response operations without adding a rule-list column", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseHeaderRule()]);
+    await extension.extensionPage.reload();
+
+    const headerOperation = extension.extensionPage.locator(".response-header-rule .operation-toggle");
+    await expect(headerOperation).toHaveAttribute("aria-label", "Response header operation: Set");
+    await headerOperation.click();
+    await expect(headerOperation).toHaveAttribute("aria-label", "Response header operation: Remove");
+    await expect(extension.extensionPage.locator(".response-header-rule .value")).toBeHidden();
+
+    const storedHeaderRules = await readStoredRules(extension.extensionPage);
+    expect(storedHeaderRules.profiles[0].rules[0].operation).toBe("remove");
+
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+    await extension.extensionPage.getByRole("button", { name: "Add response cookie rule", exact: true }).click();
+    const cookieOperation = extension.extensionPage.locator(".response-cookie-rule .operation-toggle");
+    await expect(cookieOperation).toHaveAttribute("aria-label", "Response cookie operation: Add");
+    await cookieOperation.click();
+    await expect(cookieOperation).toHaveAttribute("aria-label", "Response cookie operation: Delete");
+    await expect(extension.extensionPage.locator(".response-cookie-rule .value")).toBeHidden();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .path")).toBeVisible();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .domain")).toBeVisible();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .same-site")).toBeHidden();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .session")).toBeHidden();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .max-age")).toBeHidden();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .secure")).toBeHidden();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("supports operations on request header rules", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [requestHeaderRule()]);
+    await extension.extensionPage.reload();
+
+    const operation = extension.extensionPage.locator(".request-header-rule .operation-toggle");
+    await expect(operation).toHaveAttribute("aria-label", "Request header operation: Set");
+    await operation.click();
+    await expect(operation).toHaveAttribute("aria-label", "Request header operation: Remove");
+    await expect(extension.extensionPage.locator(".request-header-rule .value")).toBeHidden();
+    await expect(extension.extensionPage.locator(".request-header-rule .header")).toHaveValue("X-E2E-Request");
+
+    const stored = await readStoredRules(extension.extensionPage);
+    expect(stored.profiles[0].rules[0].operation).toBe("remove");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("keeps tab counters and applied badge counts in sync with enabled rules", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({ id: "counter-request-header-set", operation: "set" }),
+      requestHeaderRule({ id: "counter-request-header-remove", operation: "remove", header: "X-E2E-Request-Remove" }),
+      responseHeaderRule({ id: "counter-response-header-set", operation: "set" }),
+      responseHeaderRule({ id: "counter-response-header-remove", operation: "remove", header: "X-E2E-Response-Remove" }),
+      requestCookieRule({ id: "counter-request-cookie-add", operation: "add" }),
+      responseCookieRule({ id: "counter-response-cookie-add", operation: "add" }),
+      responseCookieRule({ id: "counter-response-cookie-delete", operation: "delete", name: "e2e_response_cookie_delete" }),
+      requestHeaderRule({ id: "counter-disabled-header", enabled: false }),
+      requestHeaderRule({ id: "counter-invalid-header", header: "Invalid Header Name" }),
+      requestHeaderRule({ id: "counter-incomplete-request-header", header: "" }),
+      responseHeaderRule({ id: "counter-incomplete-response-header", header: "" }),
+      requestCookieRule({ id: "counter-incomplete-request-cookie", name: "" }),
+      responseCookieRule({ id: "counter-incomplete-response-cookie", name: "" })
+    ]);
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 7);
+
+    await expect(extension.extensionPage.getByRole("button", { name: /Headers\s+4/ })).toBeVisible();
+    await expect(extension.extensionPage.getByRole("button", { name: /Cookies\s+3/ })).toBeVisible();
+    await expect.poll(async () => extension.extensionPage.evaluate(() => chrome.action.getBadgeText({}))).toBe("7");
+
+    await extension.extensionPage.locator(".request-header-rule .enabled").first().uncheck();
+
+    await expect(extension.extensionPage.getByRole("button", { name: /Headers\s+3/ })).toBeVisible();
+    await expect.poll(async () => extension.extensionPage.evaluate(() => chrome.action.getBadgeText({}))).toBe("6");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("pauses and resumes all rules with the master toggle", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedProfiles(
+      extension.extensionPage,
+      [
+        {
+          id: "master-toggle-profile-one",
+          name: "Profile One",
+          rules: [
+            requestHeaderRule({ id: "master-toggle-request-rule" }),
+            responseHeaderRule({ id: "master-toggle-response-rule" })
+          ]
+        },
+        {
+          id: "master-toggle-profile-two",
+          name: "Profile Two",
+          rules: [requestHeaderRule({ id: "master-toggle-other-profile-rule" })]
+        }
+      ],
+      "master-toggle-profile-one"
+    );
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const initiallyEnabledEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const initiallyEnabledResponseHeader = await page.evaluate(async () =>
+      (await fetch("/empty")).headers.get("x-e2e-response")
+    );
+    expect(initiallyEnabledEcho.headers["x-e2e-request"]).toBe("request-value");
+    expect(initiallyEnabledResponseHeader).toBe("response-value");
+
+    const toggle = extension.extensionPage.locator("#global-rules-toggle");
+    await expect(toggle).toBeChecked();
+    await toggle.uncheck();
+
+    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-label", "All rules paused");
+    await expect(extension.extensionPage.locator(".header-rule .enabled")).toHaveCount(2);
+    await expect(extension.extensionPage.locator(".header-rule .enabled").nth(0)).not.toBeChecked();
+    await expect(extension.extensionPage.locator(".header-rule .enabled").nth(1)).not.toBeChecked();
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .toHaveClass(/is-paused/);
+    await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("Inactive");
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return {
+        rulesEnabled: stored.rulesEnabled,
+        enabledStates: stored.profiles.flatMap((profile) => profile.rules.map((rule) => rule.enabled))
+      };
+    }).toEqual({ rulesEnabled: false, enabledStates: [false, false, false] });
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+    await expect.poll(async () => extension.extensionPage.evaluate(() => chrome.action.getBadgeText({}))).toBe("");
+
+    const pausedEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const pausedResponseHeader = await page.evaluate(async () =>
+      (await fetch("/empty")).headers.get("x-e2e-response")
+    );
+    expect(pausedEcho.headers["x-e2e-request"]).toBeUndefined();
+    expect(pausedResponseHeader).toBeNull();
+
+    await toggle.check();
+
+    await expect(toggle).toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-label", "All rules enabled");
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .not.toHaveClass(/is-paused/);
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return {
+        rulesEnabled: stored.rulesEnabled,
+        enabledStates: stored.profiles.flatMap((profile) => profile.rules.map((rule) => rule.enabled))
+      };
+    }).toEqual({ rulesEnabled: true, enabledStates: [true, true, true] });
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+    await expect.poll(async () => extension.extensionPage.evaluate(() => chrome.action.getBadgeText({}))).toBe("2");
+
+    const resumedEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const resumedResponseHeader = await page.evaluate(async () =>
+      (await fetch("/empty")).headers.get("x-e2e-response")
+    );
+    expect(resumedEcho.headers["x-e2e-request"]).toBe("request-value");
+    expect(resumedResponseHeader).toBe("response-value");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("stops and restores request and response header/cookie rules with the master toggle", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({
+        id: "master-network-request-header",
+        header: "X-E2E-Master-Request",
+        value: "request-enabled"
+      }),
+      responseHeaderRule({
+        id: "master-network-response-header",
+        header: "X-E2E-Master-Response",
+        value: "response-enabled"
+      }),
+      requestCookieRule({
+        id: "master-network-request-cookie",
+        name: "e2e_master_request_cookie",
+        value: "request-cookie-enabled"
+      }),
+      responseCookieRule({
+        id: "master-network-response-cookie",
+        name: "e2e_master_response_cookie",
+        value: "response-cookie-enabled"
+      })
+    ]);
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 4);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const enabledEcho = await page.evaluate(async () => {
+      const response = await fetch("/echo");
+      return response.json();
+    });
+    const enabledResponseHeader = await page.evaluate(async () => {
+      const response = await fetch("/empty");
+      return response.headers.get("x-e2e-master-response");
+    });
+    const enabledCookies = await extension.context.cookies(server.origin);
+
+    expect(enabledEcho.headers["x-e2e-master-request"]).toBe("request-enabled");
+    expect(enabledEcho.headers.cookie).toContain("e2e_master_request_cookie=request-cookie-enabled");
+    expect(enabledResponseHeader).toBe("response-enabled");
+    expect(enabledCookies.find((cookie) => cookie.name === "e2e_master_response_cookie")?.value)
+      .toBe("response-cookie-enabled");
+
+    await extension.context.clearCookies();
+    await extension.extensionPage.locator("#global-rules-toggle").uncheck();
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const disabledEcho = await page.evaluate(async () => {
+      const response = await fetch("/echo");
+      return response.json();
+    });
+    const disabledResponseHeader = await page.evaluate(async () => {
+      const response = await fetch("/empty");
+      return response.headers.get("x-e2e-master-response");
+    });
+    const disabledCookies = await extension.context.cookies(server.origin);
+
+    expect(disabledEcho.headers["x-e2e-master-request"]).toBeUndefined();
+    expect(disabledEcho.headers.cookie || "").not.toContain("e2e_master_request_cookie=request-cookie-enabled");
+    expect(disabledResponseHeader).toBeNull();
+    expect(disabledCookies.some((cookie) => cookie.name === "e2e_master_response_cookie")).toBe(false);
+
+    await extension.extensionPage.locator("#global-rules-toggle").check();
+    await waitForAppliedRuleCount(extension.extensionPage, 4);
+
+    const restoredEcho = await page.evaluate(async () => {
+      const response = await fetch("/echo");
+      return response.json();
+    });
+    const restoredResponseHeader = await page.evaluate(async () => {
+      const response = await fetch("/empty");
+      return response.headers.get("x-e2e-master-response");
+    });
+    const restoredCookies = await extension.context.cookies(server.origin);
+
+    expect(restoredEcho.headers["x-e2e-master-request"]).toBe("request-enabled");
+    expect(restoredEcho.headers.cookie).toContain("e2e_master_request_cookie=request-cookie-enabled");
+    expect(restoredResponseHeader).toBe("response-enabled");
+    expect(restoredCookies.find((cookie) => cookie.name === "e2e_master_response_cookie")?.value)
+      .toBe("response-cookie-enabled");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("restores each rule's previous enabled state after the master toggle cycle", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({ id: "snapshot-enabled-rule", enabled: true }),
+      responseHeaderRule({ id: "snapshot-disabled-rule", enabled: false })
+    ]);
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const toggle = extension.extensionPage.locator("#global-rules-toggle");
+    await toggle.uncheck();
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    await toggle.check();
+
+    await expect(toggle).toBeChecked();
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules.map((rule) => rule.enabled);
+    }).toEqual([true, false]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const echo = await page.evaluate(async () => (await fetch("/echo")).json());
+    const responseHeader = await page.evaluate(async () =>
+      (await fetch("/empty")).headers.get("x-e2e-response")
+    );
+    expect(echo.headers["x-e2e-request"]).toBe("request-value");
+    expect(responseHeader).toBeNull();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("turns the master toggle off when all active-profile rules are disabled individually", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({ id: "individual-disable-rule-one" }),
+      responseHeaderRule({ id: "individual-disable-rule-two" })
+    ]);
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+
+    const toggle = extension.extensionPage.locator("#global-rules-toggle");
+    await extension.extensionPage.locator(".request-header-rule .enabled").uncheck();
+    await expect(toggle).toBeChecked();
+
+    await extension.extensionPage.locator(".response-header-rule .enabled").uncheck();
+
+    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-label", "All rules paused");
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .toHaveText("Inactive");
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.rulesEnabled;
+    }).toBe(false);
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const fullyDisabledEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const fullyDisabledResponseHeader = await page.evaluate(async () =>
+      (await fetch("/empty")).headers.get("x-e2e-response")
+    );
+    expect(fullyDisabledEcho.headers["x-e2e-request"]).toBeUndefined();
+    expect(fullyDisabledResponseHeader).toBeNull();
+
+    await extension.extensionPage.locator(".request-header-rule .enabled").check();
+    await expect(toggle).toBeChecked();
+    await extension.extensionPage.locator(".response-header-rule .enabled").check();
+
+    await expect(toggle).toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-label", "All rules enabled");
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .toHaveText("Active");
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.rulesEnabled;
+    }).toBe(true);
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+
+    const partiallyEnabledEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const partiallyEnabledResponseHeader = await page.evaluate(async () =>
+      (await fetch("/empty")).headers.get("x-e2e-response")
+    );
+    expect(partiallyEnabledEcho.headers["x-e2e-request"]).toBe("request-value");
+    expect(partiallyEnabledResponseHeader).toBe("response-value");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("updates the master toggle and counters when one cookie rule is re-enabled", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({ id: "toggle-request-header" }),
+      responseHeaderRule({ id: "toggle-response-header" }),
+      requestCookieRule({ id: "toggle-request-cookie" }),
+      responseCookieRule({ id: "toggle-response-cookie" })
+    ]);
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 4);
+
+    await extension.extensionPage.locator(".header-rule .enabled").nth(0).uncheck();
+    await extension.extensionPage.locator(".header-rule .enabled").nth(1).uncheck();
+    await extension.extensionPage.getByRole("button", { name: /Cookies\s+2/ }).click();
+    await extension.extensionPage.locator(".cookie-rule .enabled").nth(0).uncheck();
+    await extension.extensionPage.locator(".cookie-rule .enabled").nth(1).uncheck();
+
+    const toggle = extension.extensionPage.locator("#global-rules-toggle");
+    await expect(toggle).not.toBeChecked();
+    await expect(extension.extensionPage.getByRole("button", { name: /Headers\s+0/ })).toBeVisible();
+    await expect(extension.extensionPage.getByRole("button", { name: /Cookies\s+0/ })).toBeVisible();
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const fullyDisabledEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const fullyDisabledCookies = await extension.context.cookies(server.origin);
+    expect(fullyDisabledEcho.headers.cookie || "").not.toContain("e2e_request_cookie=cookie-value");
+    expect(fullyDisabledCookies.some((cookie) => cookie.name === "e2e_response_cookie")).toBe(false);
+
+    await extension.extensionPage.locator(".cookie-rule .enabled").first().check();
+
+    await expect(toggle).toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-label", "All rules enabled");
+    await expect(extension.extensionPage.getByRole("button", { name: /Headers\s+0/ })).toBeVisible();
+    await expect(extension.extensionPage.getByRole("button", { name: /Cookies\s+1/ })).toBeVisible();
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const partiallyEnabledEcho = await page.evaluate(async () => (await fetch("/echo")).json());
+    const partiallyEnabledCookies = await extension.context.cookies(server.origin);
+    expect(partiallyEnabledEcho.headers.cookie).toContain("e2e_request_cookie=cookie-value");
+    expect(partiallyEnabledCookies.some((cookie) => cookie.name === "e2e_response_cookie")).toBe(false);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("does not apply a newly added rule while the master toggle is off", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, []);
+    await extension.extensionPage.reload();
+
+    const toggle = extension.extensionPage.locator("#global-rules-toggle");
+    await toggle.uncheck();
+    await expect(toggle).not.toBeChecked();
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    await extension.extensionPage.getByRole("button", { name: "Add request header rule", exact: true }).click();
+    const rule = extension.extensionPage.locator(".request-header-rule");
+    await rule.locator(".header").fill("X-E2E-Paused-New-Rule");
+    await rule.locator(".value").fill("should-not-apply");
+
+    await expect(rule.locator(".enabled")).not.toBeChecked();
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules[0];
+    }).toMatchObject({
+      header: "X-E2E-Paused-New-Rule",
+      value: "should-not-apply",
+      enabled: false
+    });
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const echo = await page.evaluate(async () => (await fetch("/echo")).json());
+
+    expect(echo.headers["x-e2e-paused-new-rule"]).toBeUndefined();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("turns the master toggle off when the last active rule is deleted", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [requestHeaderRule({ id: "last-active-rule" })]);
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const beforeDelete = await page.evaluate(async () => (await fetch("/echo")).json());
+    expect(beforeDelete.headers["x-e2e-request"]).toBe("request-value");
+
+    await extension.extensionPage.locator(".request-header-rule .delete").click();
+
+    await expect(extension.extensionPage.locator("#global-rules-toggle")).not.toBeChecked();
+    await expect(extension.extensionPage.locator("#global-rules-toggle"))
+      .toHaveAttribute("aria-label", "All rules paused");
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .toHaveText("Inactive");
+    await expect(extension.extensionPage.locator(".request-header-rule")).toHaveCount(0);
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return {
+        rulesEnabled: stored.rulesEnabled,
+        ruleCount: stored.profiles[0].rules.length
+      };
+    }).toEqual({ rulesEnabled: false, ruleCount: 0 });
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const afterDelete = await page.evaluate(async () => (await fetch("/echo")).json());
+    expect(afterDelete.headers["x-e2e-request"]).toBeUndefined();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("turns the master toggle off when the last request or response cookie rule is deleted", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestCookieRule({ id: "last-request-cookie-rule", name: "last_request_cookie" }),
+      responseCookieRule({ id: "last-response-cookie-rule", name: "last_response_cookie" })
+    ]);
+    await extension.extensionPage.reload();
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const beforeDelete = await page.evaluate(async () => (await fetch("/echo")).json());
+    await page.evaluate(async () => { await fetch("/empty"); });
+    expect(beforeDelete.headers.cookie).toContain("last_request_cookie=cookie-value");
+
+    const cookieRules = extension.extensionPage.locator(".cookie-rule");
+    await cookieRules.first().locator(".delete").click();
+
+    await expect(extension.extensionPage.locator("#global-rules-toggle")).toBeChecked();
+    await expect(cookieRules).toHaveCount(1);
+
+    await extension.context.clearCookies();
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+    const afterRequestCookieDelete = await page.evaluate(async () => (await fetch("/echo")).json());
+    await page.evaluate(async () => { await fetch("/empty"); });
+    const responseCookieAfterRequestDelete = await extension.context.cookies(server.origin);
+    expect(afterRequestCookieDelete.headers.cookie || "").not.toContain("last_request_cookie=cookie-value");
+    expect(responseCookieAfterRequestDelete.some((cookie) => cookie.name === "last_response_cookie")).toBe(true);
+
+    await extension.extensionPage.locator(".cookie-rule .delete").click();
+
+    await expect(extension.extensionPage.locator("#global-rules-toggle")).not.toBeChecked();
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .toHaveText("Inactive");
+    await expect(extension.extensionPage.locator(".cookie-rule")).toHaveCount(0);
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return {
+        rulesEnabled: stored.rulesEnabled,
+        ruleCount: stored.profiles[0].rules.length
+      };
+    }).toEqual({ rulesEnabled: false, ruleCount: 0 });
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    await extension.context.clearCookies();
+    const afterAllCookieDelete = await page.evaluate(async () => (await fetch("/echo")).json());
+    await page.evaluate(async () => { await fetch("/empty"); });
+    const responseCookiesAfterAllDelete = await extension.context.cookies(server.origin);
+    expect(afterAllCookieDelete.headers.cookie || "").not.toContain("last_request_cookie=cookie-value");
+    expect(responseCookiesAfterAllDelete.some((cookie) => cookie.name === "last_response_cookie")).toBe(false);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("deletes an existing response header when configured with an empty value", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseHeaderRule({
+      id: "delete-response-header-rule",
+      header: "X-E2E-Delete-Target",
+      value: "",
+      operation: "remove"
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const headerValue = await page.evaluate(async () => {
+      const response = await fetch("/delete-target");
+      return response.headers.get("x-e2e-delete-target");
+    });
+
+    expect(headerValue).toBeNull();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("deletes an existing response cookie with Max-Age zero", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseCookieRule({
+      id: "delete-response-cookie-rule",
+      name: "e2e_delete_cookie",
+      value: "",
+      operation: "delete",
+      path: "/",
+      session: false,
+      maxAge: "0"
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    await extension.context.addCookies([{
+      name: "e2e_delete_cookie",
+      value: "existing-value",
+      domain: "127.0.0.1",
+      path: "/"
+    }]);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    await page.evaluate(async () => {
+      await fetch("/delete-target");
+    });
+
+    const cookies = await extension.context.cookies(server.origin);
+    expect(cookies.some((cookie) => cookie.name === "e2e_delete_cookie")).toBe(false);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("deletes only the response cookie matching the configured path", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseCookieRule({
+      id: "delete-scoped-response-cookie-rule",
+      name: "e2e_delete_cookie",
+      value: "",
+      operation: "delete",
+      path: "/scoped",
+      session: false,
+      maxAge: "0",
+      urlFilter: "*/delete-target/scoped"
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    await extension.context.addCookies([
+      {
+        name: "e2e_delete_cookie",
+        value: "root-value",
+        domain: "127.0.0.1",
+        path: "/"
+      },
+      {
+        name: "e2e_delete_cookie",
+        value: "scoped-value",
+        domain: "127.0.0.1",
+        path: "/scoped"
+      }
+    ]);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    await page.evaluate(async () => {
+      await fetch("/delete-target/scoped");
+    });
+
+    const cookies = await extension.context.cookies(`${server.origin}/scoped`);
+    expect(cookies.find((cookie) => cookie.name === "e2e_delete_cookie" && cookie.path === "/")).toMatchObject({
+      value: "root-value"
+    });
+    expect(cookies.some((cookie) => cookie.name === "e2e_delete_cookie" && cookie.path === "/scoped")).toBe(false);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("deletes a response cookie using the configured domain and path", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseCookieRule({
+      id: "delete-domain-path-response-cookie-rule",
+      operation: "delete",
+      name: "e2e_domain_path_delete_cookie",
+      domain: "127.0.0.1",
+      path: "/scoped",
+      urlFilter: "*/delete-target/scoped"
+    })]);
+    await extension.extensionPage.reload();
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+
+    await expect(extension.extensionPage.locator(".response-cookie-rule .operation-toggle"))
+      .toHaveAttribute("aria-label", "Response cookie operation: Delete");
+    await expect(extension.extensionPage.locator(".response-cookie-rule .domain")).toHaveValue("127.0.0.1");
+    await expect(extension.extensionPage.locator(".response-cookie-rule .path")).toHaveValue("/scoped");
+
+    const stored = await readStoredRules(extension.extensionPage);
+    const storedRule = stored.profiles[0].rules[0];
+    expect(storedRule).toMatchObject({
+      operation: "delete",
+      domain: "127.0.0.1",
+      path: "/scoped"
+    });
+
+    await extension.context.addCookies([
+      {
+        name: "e2e_domain_path_delete_cookie",
+        value: "root-value",
+        domain: "127.0.0.1",
+        path: "/"
+      },
+      {
+        name: "e2e_domain_path_delete_cookie",
+        value: "scoped-value",
+        domain: "127.0.0.1",
+        path: "/scoped"
+      },
+      {
+        name: "e2e_domain_path_delete_cookie",
+        value: "other-domain-value",
+        domain: "other.test",
+        path: "/scoped"
+      }
+    ]);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    await page.evaluate(async () => {
+      await fetch("/delete-target/scoped");
+    });
+
+    const cookies = await extension.context.cookies(`${server.origin}/scoped`);
+    expect(cookies.find((cookie) => cookie.name === "e2e_domain_path_delete_cookie" && cookie.path === "/"))
+      .toMatchObject({ domain: "127.0.0.1", value: "root-value" });
+    expect(cookies.some((cookie) => cookie.name === "e2e_domain_path_delete_cookie" && cookie.path === "/scoped")).toBe(false);
+
+    const otherDomainCookies = await extension.context.cookies("http://other.test/scoped");
+    expect(otherDomainCookies.find((cookie) => cookie.name === "e2e_domain_path_delete_cookie"))
+      .toMatchObject({ domain: "other.test", path: "/scoped", value: "other-domain-value" });
+  } finally {
+    await extension.close();
+  }
+});
+
+test("does not apply disabled response deletion rules", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseHeaderRule({
+      id: "disabled-delete-response-header-rule",
+      header: "X-E2E-Delete-Target",
+      value: "",
+      enabled: false
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const headerValue = await page.evaluate(async () => {
+      const response = await fetch("/delete-target");
+      return response.headers.get("x-e2e-delete-target");
+    });
+
+    expect(headerValue).toBe("server-value");
+  } finally {
+    await extension.close();
+  }
+});
+
 test("applies all configured header and cookie rules together", async () => {
   const extension = await launchExtension();
 
@@ -547,7 +1300,8 @@ test("migrates legacy array-based rules into default profile storage", async () 
 
     const migrated = await readStoredRules(extension.extensionPage);
 
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.rulesEnabled).toBe(true);
     expect(migrated.activeProfileId).toBe("default");
     expect(migrated.profiles).toHaveLength(1);
     expect(migrated.profiles[0]).toMatchObject({
@@ -561,6 +1315,7 @@ test("migrates legacy array-based rules into default profile storage", async () 
       enabled: true,
       header: "X-E2E-Legacy",
       value: "migrated-value",
+      operation: "set",
       urlFilter: "|http*"
     });
 
@@ -573,6 +1328,34 @@ test("migrates legacy array-based rules into default profile storage", async () 
     });
 
     expect(echo.headers["x-e2e-legacy"]).toBe("migrated-value");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("migrates old profiles with no enabled rules to an inactive master toggle", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedLegacyRules(extension.extensionPage, [
+      requestHeaderRule({
+        id: "legacy-disabled-rule",
+        enabled: false
+      })
+    ]);
+
+    await extension.extensionPage.reload();
+
+    await expect(extension.extensionPage.locator("#global-rules-toggle")).not.toBeChecked();
+    await expect(extension.extensionPage.locator("#global-rules-toggle"))
+      .toHaveAttribute("aria-label", "All rules paused");
+    await expect(extension.extensionPage.locator(".profile-current-badge"))
+      .toHaveText("Inactive");
+
+    const migrated = await readStoredRules(extension.extensionPage);
+    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.rulesEnabled).toBe(false);
+    expect(migrated.profiles[0].rules[0].enabled).toBe(false);
   } finally {
     await extension.close();
   }

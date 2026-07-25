@@ -60,6 +60,55 @@ select {
   flex: 0 0 auto;
 }
 
+.master-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.master-toggle input[type="checkbox"] {
+  position: relative;
+  width: 28px;
+  min-width: 28px;
+  min-height: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #98a2b3;
+  border-radius: 999px;
+  background: #d0d5dd;
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.master-toggle input[type="checkbox"]::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.2);
+  content: "";
+  transition: transform 0.15s ease;
+}
+
+.master-toggle input[type="checkbox"]:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.master-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(12px);
+}
+
+.master-toggle input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(11, 122, 117, 0.18);
+}
+
 h1 {
   margin: 0;
   font-size: 16px;
@@ -119,6 +168,12 @@ h1 {
   font-weight: 800;
   line-height: 1.2;
   text-transform: uppercase;
+}
+
+.profile-current-badge.is-paused {
+  color: #667085;
+  background: #eaecf0;
+  text-decoration: line-through;
 }
 
 .menu-button {
@@ -1072,6 +1127,59 @@ select {
   background: #ffffff;
   padding: 4px 7px;
   outline: none;
+}
+
+.operation-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.value-shell {
+  display: block;
+  min-width: 0;
+}
+
+.request-header-rule .operation-field .header,
+.response-header-rule .operation-field .header,
+.response-cookie-rule .operation-field .name {
+  padding-left: 27px;
+}
+
+.operation-toggle {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: 4px;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--accent-dark);
+  background: rgba(11, 122, 117, 0.08);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.operation-toggle:hover,
+.operation-toggle:focus-visible {
+  background: rgba(11, 122, 117, 0.16);
+  outline: none;
+}
+
+.operation-toggle[hidden] {
+  display: none;
+}
+
+.value:disabled {
+  color: var(--muted);
+  background: #f2f4f7;
+  cursor: not-allowed;
 }
 
 input[type="checkbox"] {

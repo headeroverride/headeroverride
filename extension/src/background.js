@@ -1,6 +1,6 @@
 const STORAGE_KEY = "headerOverrideRules";
 const SYNC_STATUS_KEY = "headerOverrideSyncStatus";
-const STORAGE_SCHEMA_VERSION = 2;
+const STORAGE_SCHEMA_VERSION = 5;
 const DEFAULT_PROFILE_ID = "default";
 const MAX_PROFILES = 5;
 const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
@@ -77,7 +77,9 @@ async function syncRules() {
   const stored = await chrome.storage.local.get(STORAGE_KEY);
   const data = normalizeStorageData(stored[STORAGE_KEY], false);
   const savedRules = getActiveProfile(data).rules;
-  const enabledRules = savedRules.filter((rule) => rule.enabled);
+  const enabledRules = data.rulesEnabled
+    ? savedRules.filter((rule) => rule.enabled)
+    : [];
   const declarativeCandidates = enabledRules
     .map((rule, index) => toDeclarativeRule(rule, index));
   const addRules = declarativeCandidates
@@ -121,7 +123,7 @@ async function updateActionBadge() {
   const data = normalizeStorageData(stored[STORAGE_KEY], false);
   const savedRules = getActiveProfile(data).rules;
   const syncStatus = stored[SYNC_STATUS_KEY];
-  const enabledCount = savedRules.filter((rule) => rule.enabled).length;
+  const enabledCount = data.rulesEnabled ? savedRules.filter((rule) => rule.enabled).length : 0;
   const appliedCount = Number.isInteger(syncStatus?.appliedCount)
     ? syncStatus.appliedCount
     : enabledCount;
@@ -187,6 +189,14 @@ function toHeaderAction(rule, kind) {
       return null;
     }
 
+    if (normalizeCookieOperation(rule.operation) === "delete") {
+      return {
+        header: "Set-Cookie",
+        operation: "append",
+        value: buildDeleteCookieValue(cookieName, rule)
+      };
+    }
+
     return {
       header: "Set-Cookie",
       operation: "append",
@@ -202,9 +212,36 @@ function toHeaderAction(rule, kind) {
 
   return {
     header: headerName,
-    operation: "set",
-    value: String(rule.value ?? "")
+    operation: normalizeHeaderOperation(rule.operation),
+    ...(normalizeHeaderOperation(rule.operation) === "remove"
+      ? {}
+      : { value: String(rule.value ?? "") })
   };
+}
+
+function buildDeleteCookieValue(name, rule) {
+  const cookieParts = [`${name}=`];
+  const domain = normalizeOptionalText(rule.domain);
+  const path = normalizeOptionalText(rule.path);
+
+  if (domain) {
+    cookieParts.push(`Domain=${domain}`);
+  }
+
+  if (path) {
+    cookieParts.push(`Path=${path}`);
+  }
+
+  cookieParts.push("Max-Age=0");
+  return cookieParts.join("; ");
+}
+
+function normalizeHeaderOperation(value) {
+  return ["set", "remove"].includes(value) ? value : "set";
+}
+
+function normalizeCookieOperation(value) {
+  return value === "delete" ? "delete" : "add";
 }
 
 function buildSetCookieValue(name, rule) {
@@ -309,23 +346,35 @@ function normalizeStorageData(value, includeDefaultRule) {
   const activeProfileId = limitedProfiles.some((profile) => profile.id === value.activeProfileId)
     ? value.activeProfileId
     : limitedProfiles[0].id;
+  const activeProfile = limitedProfiles.find((profile) => profile.id === activeProfileId) || limitedProfiles[0];
+  const rulesEnabled = typeof value.rulesEnabled === "boolean"
+    ? value.rulesEnabled
+    : activeProfile.rules.length === 0 || activeProfile.rules.some((rule) => rule.enabled);
 
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
+    rulesEnabled,
+    masterToggleSnapshot: value.masterToggleSnapshot && typeof value.masterToggleSnapshot === "object"
+      ? value.masterToggleSnapshot
+      : null,
     activeProfileId,
     profiles: limitedProfiles
   };
 }
 
 function createStorageData(rules) {
+  const normalizedRules = Array.isArray(rules) ? rules.map(normalizeRule) : [];
+
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
+    rulesEnabled: normalizedRules.length === 0 || normalizedRules.some((rule) => rule.enabled),
+    masterToggleSnapshot: null,
     activeProfileId: DEFAULT_PROFILE_ID,
     profiles: [
       {
         id: DEFAULT_PROFILE_ID,
         name: "Default",
-        rules: Array.isArray(rules) ? rules.map(normalizeRule) : []
+        rules: normalizedRules
       }
     ]
   };
@@ -388,6 +437,7 @@ function normalizeRule(rule) {
       sameSite: normalizeStoredSameSite(rule.sameSite, isResponseCookie ? "lax" : ""),
       session: rule.session !== false,
       maxAge: rule.maxAge || (isResponseCookie ? "2592000" : ""),
+      operation: isResponseCookie ? normalizeCookieOperation(rule.operation) : "add",
       urlFilter: rule.urlFilter || "|http*"
     };
   }
@@ -395,6 +445,7 @@ function normalizeRule(rule) {
   return {
     ...normalized,
     header: rule.header || "",
+    operation: normalizeHeaderOperation(rule.operation),
     urlFilter: rule.urlFilter || "|http*"
   };
 }

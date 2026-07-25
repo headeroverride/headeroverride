@@ -1,6 +1,6 @@
 const STORAGE_KEY = "headerOverrideRules";
 const POPUP_STATE_KEY = "headerOverridePopupState";
-const STORAGE_SCHEMA_VERSION = 2;
+const STORAGE_SCHEMA_VERSION = 5;
 const DEFAULT_PROFILE_ID = "default";
 const MAX_PROFILES = globalThis.HEADER_OVERRIDE_CONFIG.maxProfiles;
 const HEADER_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
@@ -11,6 +11,7 @@ const urlHelpTemplate = document.querySelector("#url-help-template");
 const profileMenuButton = document.querySelector("#profile-menu-button");
 const profileMenu = document.querySelector("#profile-menu");
 const profileCurrent = document.querySelector("#profile-current");
+const globalRulesToggle = document.querySelector("#global-rules-toggle");
 const tabs = Array.from(document.querySelectorAll(".tab"));
 const countNodes = Array.from(document.querySelectorAll("[data-count]"));
 const importProfilesInput = document.createElement("input");
@@ -26,6 +27,8 @@ let profiles = storageData.profiles;
 let activeProfileId = storageData.activeProfileId;
 let viewedProfileId = activeProfileId;
 let rules = [];
+let rulesEnabled = true;
+let masterToggleSnapshot = null;
 const expandedCookieDetails = new Set();
 let isAddingProfile = false;
 let profileMenuMode = "list";
@@ -44,6 +47,14 @@ async function init() {
   profiles = storageData.profiles;
   activeProfileId = storageData.activeProfileId;
   viewedProfileId = activeProfileId;
+  rulesEnabled = storageData.rulesEnabled;
+  masterToggleSnapshot = storageData.masterToggleSnapshot;
+  if (!rulesEnabled) {
+    profiles = profiles.map((profile) => ({
+      ...profile,
+      rules: profile.rules.map((rule) => normalizeRule({ ...rule, enabled: false }))
+    }));
+  }
   rules = getViewedProfile().rules;
   const normalizedData = toStorageData();
   if (!isSameStorageData(stored[STORAGE_KEY], normalizedData)) {
@@ -54,6 +65,20 @@ async function init() {
 
 profileMenuButton.addEventListener("click", () => {
   toggleProfileMenu(profileMenu.hidden);
+});
+
+globalRulesToggle.addEventListener("change", () => {
+  rulesEnabled = globalRulesToggle.checked;
+  if (rulesEnabled) {
+    profiles = restoreMasterToggleRuleStates(profiles, masterToggleSnapshot);
+    masterToggleSnapshot = null;
+  } else {
+    masterToggleSnapshot = captureMasterToggleRuleStates(profiles);
+    profiles = setAllRulesEnabled(profiles, false);
+  }
+  rules = getViewedProfile().rules;
+  render();
+  saveNow();
 });
 
 importProfilesInput.addEventListener("change", async () => {
@@ -251,10 +276,70 @@ document.addEventListener("keydown", (event) => {
 });
 
 function render() {
+  const rulesChanged = syncRulesToMasterState();
+  renderGlobalRulesToggle();
   renderCurrentProfile();
   renderProfileMenu();
   updateTabs();
   renderRules();
+  if (rulesChanged) {
+    saveNow();
+  }
+}
+
+function syncRulesToMasterState() {
+  if (rulesEnabled) {
+    return false;
+  }
+
+  const hasEnabledRules = profiles.some((profile) => profile.rules.some((rule) => rule.enabled));
+  if (!hasEnabledRules) {
+    return false;
+  }
+
+  profiles = profiles.map((profile) => ({
+    ...profile,
+    rules: profile.rules.map((rule) => normalizeRule({ ...rule, enabled: false }))
+  }));
+  rules = getViewedProfile().rules;
+  return true;
+}
+
+function setAllRulesEnabled(profilesToUpdate, enabled) {
+  return profilesToUpdate.map((profile) => ({
+    ...profile,
+    rules: profile.rules.map((rule) => normalizeRule({ ...rule, enabled }))
+  }));
+}
+
+function captureMasterToggleRuleStates(profilesToCapture) {
+  return Object.fromEntries(profilesToCapture.map((profile) => [
+    profile.id,
+    Object.fromEntries(profile.rules.map((rule) => [rule.id, rule.enabled]))
+  ]));
+}
+
+function restoreMasterToggleRuleStates(profilesToRestore, snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return profilesToRestore;
+  }
+
+  return profilesToRestore.map((profile) => ({
+    ...profile,
+    rules: profile.rules.map((rule) => {
+      const profileSnapshot = snapshot[profile.id];
+      const enabled = profileSnapshot && Object.prototype.hasOwnProperty.call(profileSnapshot, rule.id)
+        ? profileSnapshot[rule.id]
+        : rule.enabled;
+      return normalizeRule({ ...rule, enabled });
+    })
+  }));
+}
+
+function renderGlobalRulesToggle() {
+  globalRulesToggle.checked = rulesEnabled;
+  globalRulesToggle.title = rulesEnabled ? "Pause all rules" : "Enable all rules";
+  globalRulesToggle.setAttribute("aria-label", rulesEnabled ? "All rules enabled" : "All rules paused");
 }
 
 function renderCurrentProfile() {
@@ -270,11 +355,14 @@ function renderCurrentProfile() {
   if (isActive) {
     const badge = document.createElement("span");
     badge.className = "profile-current-badge";
-    badge.textContent = "Active";
+    badge.classList.toggle("is-paused", !rulesEnabled);
+    badge.textContent = rulesEnabled ? "Active" : "Inactive";
     profileCurrent.append(badge);
   }
 
-  profileCurrent.title = isActive ? `${viewedProfile.name} is active` : viewedProfile.name;
+  profileCurrent.title = isActive
+    ? rulesEnabled ? `${viewedProfile.name} is active` : `${viewedProfile.name} is paused`
+    : viewedProfile.name;
 }
 
 function renderProfileMenu() {
@@ -712,23 +800,33 @@ function renderSectionHead(kind) {
 
 function renderHeaderRule(rule) {
   const node = headerTemplate.content.firstElementChild.cloneNode(true);
+  const kind = getRuleKind(rule);
   const enabled = node.querySelector(".enabled");
   const header = node.querySelector(".header");
   const value = node.querySelector(".value");
+  const operationToggle = node.querySelector(".operation-toggle");
   const urlFilter = node.querySelector(".url-filter");
   const comment = node.querySelector(".comment");
   const deleteButton = node.querySelector(".delete");
 
+  node.classList.toggle("request-header-rule", kind === "requestHeader");
+  node.classList.toggle("response-header-rule", kind === "responseHeader");
   setFieldChecked(enabled, Boolean(rule.enabled));
   setFieldValue(header, rule.header || "");
   setFieldValue(value, rule.value || "");
   setFieldValue(urlFilter, rule.urlFilter || "|http*");
   setFieldValue(comment, rule.comment || "");
   updateCommentStyle(comment);
+  updateHeaderOperation(node, kind, rule.operation);
 
   enabled?.addEventListener("change", () => updateRule(rule.id, { enabled: enabled.checked }));
   header?.addEventListener("input", () => updateRule(rule.id, { header: header.value }));
   value?.addEventListener("input", () => updateRule(rule.id, { value: value.value }));
+  operationToggle?.addEventListener("click", () => {
+    const operation = getNextHeaderOperation(node.dataset.operation || getHeaderOperation(rule));
+    updateRule(rule.id, { operation });
+    updateHeaderOperation(node, kind, operation);
+  });
   urlFilter?.addEventListener("input", () => updateRule(rule.id, { urlFilter: urlFilter.value }));
   comment?.addEventListener("input", () => {
     updateCommentStyle(comment);
@@ -745,6 +843,7 @@ function renderCookieRule(rule) {
   const enabled = node.querySelector(".enabled");
   const name = node.querySelector(".name");
   const value = node.querySelector(".value");
+  const operationToggle = node.querySelector(".operation-toggle");
   const comment = node.querySelector(".comment");
   const urlFilterColumn = node.querySelector(".cookie-url-filter");
   const requestUrlFilter = node.querySelector(".cookie-request-fields .url-filter");
@@ -773,11 +872,17 @@ function renderCookieRule(rule) {
   setFieldValue(session, String(rule.session !== false));
   setFieldValue(maxAge, rule.maxAge || "");
   updateCookieDirection(node, rule.id, kind, getControlValue(session, "true"));
+  updateCookieOperation(node, kind, rule.operation);
   updateCommentStyle(comment);
 
   enabled?.addEventListener("change", () => updateRule(rule.id, { enabled: enabled.checked }));
   name?.addEventListener("input", () => updateRule(rule.id, { name: name.value }));
   value?.addEventListener("input", () => updateRule(rule.id, { value: value.value }));
+  operationToggle?.addEventListener("click", () => {
+    const operation = (node.dataset.operation || getCookieOperation(rule)) === "delete" ? "add" : "delete";
+    updateRule(rule.id, { operation });
+    updateCookieOperation(node, kind, operation);
+  });
   comment?.addEventListener("input", () => {
     updateCommentStyle(comment);
     updateRule(rule.id, { comment: comment.value });
@@ -814,6 +919,79 @@ function renderCookieRule(rule) {
   deleteButton?.addEventListener("click", () => deleteRule(rule.id));
 
   return node;
+}
+
+function updateHeaderOperation(node, kind, operation) {
+  const toggle = node.querySelector(".operation-toggle");
+  const value = node.querySelector(".value");
+  const normalizedOperation = getHeaderOperation({ operation });
+  const isHeader = kind === "requestHeader" || kind === "responseHeader";
+
+  if (!toggle) {
+    return;
+  }
+
+  toggle.hidden = !isHeader;
+  node.dataset.operation = normalizedOperation;
+  toggle.textContent = getHeaderOperationSymbol(normalizedOperation);
+  toggle.title = `${capitalize(kind === "requestHeader" ? "Request" : "Response")} header operation: ${capitalize(normalizedOperation)}`;
+  toggle.setAttribute("aria-label", toggle.title);
+  if (value) {
+    value.hidden = isHeader && normalizedOperation === "remove";
+  }
+}
+
+function updateCookieOperation(node, kind, operation) {
+  const toggle = node.querySelector(".operation-toggle");
+  const value = node.querySelector(".value");
+  const normalizedOperation = getCookieOperation({ operation });
+  const isResponse = kind === "responseCookie";
+
+  if (!toggle) {
+    return;
+  }
+
+  toggle.hidden = !isResponse;
+  node.dataset.operation = normalizedOperation;
+  toggle.textContent = normalizedOperation === "delete" ? "−" : "+";
+  toggle.title = `Response cookie operation: ${normalizedOperation === "delete" ? "Delete" : "Add"}`;
+  toggle.setAttribute("aria-label", toggle.title);
+  if (value) {
+    value.hidden = isResponse && normalizedOperation === "delete";
+  }
+
+  if (isResponse) {
+    for (const selector of [".same-site", ".session", ".max-age", ".secure"]) {
+      const field = node.querySelector(`.cookie-response-fields ${selector}`)?.closest("label, .detail-check");
+      if (field) {
+        field.hidden = normalizedOperation === "delete";
+      }
+    }
+  }
+}
+
+function getHeaderOperation(rule) {
+  return ["set", "remove"].includes(rule?.operation) ? rule.operation : "set";
+}
+
+function getNextHeaderOperation(operation) {
+  const operations = ["set", "remove"];
+  return operations[(operations.indexOf(operation) + 1) % operations.length];
+}
+
+function getHeaderOperationSymbol(operation) {
+  return {
+    set: "=",
+    remove: "−"
+  }[operation] || "=";
+}
+
+function getCookieOperation(rule) {
+  return rule?.operation === "delete" ? "delete" : "add";
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function updateCookieDirection(node, ruleId, kind, sessionValue) {
@@ -890,6 +1068,21 @@ function appendUrlHelp(target, kind) {
 function updateRule(id, patch) {
   rules = rules.map((rule) => rule.id === id ? normalizeRule({ ...rule, ...patch }) : rule);
   updateViewedProfileRules(rules);
+  if (viewedProfileId === activeProfileId && rules.length > 0) {
+    if (patch.enabled === false && !rules.some((rule) => rule.enabled)) {
+      rulesEnabled = false;
+      masterToggleSnapshot = null;
+    } else if (patch.enabled === true && rules.some((rule) => rule.enabled)) {
+      rulesEnabled = true;
+      masterToggleSnapshot = null;
+    }
+  }
+
+  if (viewedProfileId === activeProfileId && ((patch.enabled === false && !rules.some((rule) => rule.enabled))
+    || (patch.enabled === true && rules.some((rule) => rule.enabled)))) {
+    renderGlobalRulesToggle();
+    renderCurrentProfile();
+  }
   updateTabs();
   saveNow();
 }
@@ -898,6 +1091,10 @@ function deleteRule(id) {
   expandedCookieDetails.delete(id);
   rules = rules.filter((rule) => rule.id !== id);
   updateViewedProfileRules(rules);
+  if (viewedProfileId === activeProfileId && !rules.some((rule) => rule.enabled)) {
+    rulesEnabled = false;
+    masterToggleSnapshot = null;
+  }
   render();
   saveNow();
 }
@@ -1242,6 +1439,7 @@ function normalizeRule(rule) {
       sameSite: normalizeStoredSameSite(rule.sameSite, isResponseCookie ? "lax" : ""),
       session: rule.session !== false,
       maxAge: rule.maxAge || (isResponseCookie ? "2592000" : ""),
+      operation: isResponseCookie && rule.operation === "delete" ? "delete" : "add",
       urlFilter: rule.urlFilter || "|http*"
     };
   }
@@ -1249,6 +1447,9 @@ function normalizeRule(rule) {
   return {
     ...normalized,
     header: rule.header || "",
+    operation: ["requestHeader", "responseHeader"].includes(kind) && ["set", "append", "remove"].includes(rule.operation)
+      ? rule.operation
+      : "set",
     urlFilter: rule.urlFilter || "|http*"
   };
 }
@@ -1276,23 +1477,35 @@ function normalizeStorageData(value) {
   const finalActiveProfileId = limitedProfiles.some((profile) => profile.id === value.activeProfileId)
     ? value.activeProfileId
     : limitedProfiles[0].id;
+  const activeProfile = limitedProfiles.find((profile) => profile.id === finalActiveProfileId) || limitedProfiles[0];
+  const rulesEnabled = typeof value.rulesEnabled === "boolean"
+    ? value.rulesEnabled
+    : activeProfile.rules.length === 0 || activeProfile.rules.some((rule) => rule.enabled);
 
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
+    rulesEnabled,
+    masterToggleSnapshot: value.masterToggleSnapshot && typeof value.masterToggleSnapshot === "object"
+      ? value.masterToggleSnapshot
+      : null,
     activeProfileId: finalActiveProfileId,
     profiles: limitedProfiles
   };
 }
 
 function createStorageData(initialRules) {
+  const normalizedRules = Array.isArray(initialRules) ? initialRules.map(normalizeRule) : [];
+
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
+    rulesEnabled: normalizedRules.length === 0 || normalizedRules.some((rule) => rule.enabled),
+    masterToggleSnapshot: null,
     activeProfileId: DEFAULT_PROFILE_ID,
     profiles: [
       {
         id: DEFAULT_PROFILE_ID,
         name: "Default",
-        rules: Array.isArray(initialRules) ? initialRules.map(normalizeRule) : []
+        rules: normalizedRules
       }
     ]
   };
@@ -1335,6 +1548,8 @@ function updateViewedProfileRules(nextRules) {
 function toStorageData() {
   return {
     schemaVersion: STORAGE_SCHEMA_VERSION,
+    rulesEnabled,
+    masterToggleSnapshot,
     activeProfileId,
     profiles: profiles.map((profile) => ({
       id: profile.id,
