@@ -24,6 +24,7 @@ export type OverrideRule = {
   sameSite?: string;
   session?: boolean;
   maxAge?: string;
+  operation?: "set" | "remove" | "add" | "delete";
 };
 
 export type OverrideProfile = {
@@ -95,7 +96,8 @@ export async function seedProfiles(extensionPage: Page, profiles: OverrideProfil
       storageKey: STORAGE_KEY,
       syncStatusKey: SYNC_STATUS_KEY,
       data: {
-        schemaVersion: 2,
+        schemaVersion: 5,
+        rulesEnabled: true,
         activeProfileId,
         profiles
       }
@@ -216,7 +218,8 @@ export function responseCookieRule(overrides: Partial<OverrideRule> = {}): Overr
 
 function createStorageData(rules: OverrideRule[]) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 5,
+    rulesEnabled: true,
     activeProfileId: DEFAULT_PROFILE_ID,
     profiles: [
       {

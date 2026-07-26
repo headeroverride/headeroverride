@@ -18,52 +18,43 @@ const profiles = [
         id: "request-auth",
         kind: "requestHeader",
         enabled: true,
-        header: "X-Debug-User",
-        value: "qa-admin",
-        urlFilter: "|https*api.local.test/",
-        comment: "Local API identity"
-      },
-      {
-        id: "request-trace",
-        kind: "requestHeader",
-        enabled: true,
-        header: "X-Trace-Mode",
-        value: "verbose",
-        urlFilter: "|https*staging.example.com/",
-        comment: "Trace staging calls"
+        header: "Authorization",
+        value: "Bearer test-token",
+        urlFilter: "*api.example.com/*",
+        comment: "Test protected API"
       },
       {
         id: "response-cors",
         kind: "responseHeader",
         enabled: true,
-        header: "X-Preview-CORS",
-        value: "https://app.local.test",
-        urlFilter: "|https*api.local.test/",
+        header: "Access-Control-Allow-Origin",
+        value: "https://app.example.com",
+        urlFilter: "*api.example.com/*",
         comment: "CORS debug"
       },
       {
         id: "request-session-cookie",
         kind: "requestCookie",
         enabled: true,
-        name: "preview_session",
-        value: "enabled",
-        urlFilter: "|https*preview.example.com/",
-        comment: "Preview gate"
+        name: "article_session",
+        value: "authenticated",
+        urlFilter: "*api.example.com/*",
+        comment: "Test session cookie"
       },
       {
         id: "response-flags-cookie",
         kind: "responseCookie",
         enabled: true,
-        name: "feature_flags",
-        value: "new-checkout",
-        domain: ".example.com",
+        name: "article_session",
+        value: "authenticated",
+        domain: "api.example.com",
         path: "/",
         secure: true,
         sameSite: "lax",
         session: false,
         maxAge: "2592000",
-        urlFilter: "|https*app.example.com/",
-        comment: "Checkout beta"
+        urlFilter: "*api.example.com/*",
+        comment: "Set authenticated session"
       }
     ]
   },
@@ -121,11 +112,26 @@ async function main() {
       path: path.join(captureDir, "popup-headers.png"),
       animations: "disabled"
     });
+    for (const guideSlug of [
+      "postman-browser",
+      "auth-401",
+      "cors-preflight",
+      "admin-permissions"
+    ]) {
+      await popupPage.screenshot({
+        path: path.join(outputDir, `guide-${guideSlug}.png`),
+        animations: "disabled"
+      });
+    }
 
     await popupPage.getByRole("button", { name: /Cookies/ }).click();
     await popupPage.getByRole("button", { name: "Edit" }).last().click();
     await popupPage.screenshot({
       path: path.join(captureDir, "popup-cookies.png"),
+      animations: "disabled"
+    });
+    await popupPage.screenshot({
+      path: path.join(outputDir, "guide-auth-cookie.png"),
       animations: "disabled"
     });
 
@@ -140,6 +146,10 @@ async function main() {
     await popupPage.getByRole("button", { name: "Profiles" }).click();
     await popupPage.screenshot({
       path: path.join(captureDir, "popup-profiles.png"),
+      animations: "disabled"
+    });
+    await popupPage.screenshot({
+      path: path.join(outputDir, "guide-staging-profiles.png"),
       animations: "disabled"
     });
 
