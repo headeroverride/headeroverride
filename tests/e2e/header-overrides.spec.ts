@@ -166,6 +166,37 @@ test("supports operations on request header rules", async () => {
   }
 });
 
+test("toggles rules when clicking empty space in the On column", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({ id: "column-toggle-header" }),
+      requestCookieRule({ id: "column-toggle-cookie" })
+    ]);
+    await extension.extensionPage.reload();
+
+    const headerRow = extension.extensionPage.locator(".request-header-rule .header-rule-main");
+    await headerRow.click({ position: { x: 25, y: 15 } });
+    await expect(headerRow.locator(".enabled")).not.toBeChecked();
+
+    let stored = await readStoredRules(extension.extensionPage);
+    expect(stored.profiles[0].rules.find((rule) => rule.id === "column-toggle-header").enabled)
+      .toBe(false);
+
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+    const cookieRow = extension.extensionPage.locator(".request-cookie-rule .cookie-primary");
+    await cookieRow.click({ position: { x: 25, y: 15 } });
+    await expect(cookieRow.locator(".enabled")).not.toBeChecked();
+
+    stored = await readStoredRules(extension.extensionPage);
+    expect(stored.profiles[0].rules.find((rule) => rule.id === "column-toggle-cookie").enabled)
+      .toBe(false);
+  } finally {
+    await extension.close();
+  }
+});
+
 test("keeps tab counters and applied badge counts in sync with enabled rules", async () => {
   const extension = await launchExtension();
 
