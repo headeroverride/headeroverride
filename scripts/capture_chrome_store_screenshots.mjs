@@ -479,10 +479,10 @@ function marqueePromoTileHtml({ imageData, iconData }) {
           <span class="dot red"></span>
           <span class="dot yellow"></span>
           <span class="dot green"></span>
-          <div class="address">https://app.local.test/debug-session</div>
+          <div class="address">https://api.example.com/debug-session</div>
           <div class="toolbar-icon">
             <img src="data:image/png;base64,${iconData}" alt="">
-            <span class="toolbar-badge">5</span>
+            <span class="toolbar-badge">4</span>
           </div>
         </div>
         <div class="popup">
@@ -750,10 +750,10 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
           <span class="dot red"></span>
           <span class="dot yellow"></span>
           <span class="dot green"></span>
-          <div class="address">https://app.local.test/debug-session</div>
+          <div class="address">https://api.example.com/debug-session</div>
           <div class="toolbar-icon">
             <img src="data:image/png;base64,${iconData}" alt="">
-            <span class="toolbar-badge">5</span>
+              <span class="toolbar-badge">4</span>
           </div>
         </div>
         <div class="page"></div>
