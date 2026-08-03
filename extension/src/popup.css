@@ -2,13 +2,81 @@
   color-scheme: light;
   --bg: #f7f8fb;
   --panel: #ffffff;
+  --control-bg: #ffffff;
+  --control-disabled-bg: #f2f4f7;
+  --subtle-bg: #eef1f6;
+  --empty-bg: rgba(255, 255, 255, 0.55);
   --text: #1b2430;
   --muted: #667085;
+  --disabled-text: #98a2b3;
+  --on-accent: #ffffff;
   --line: #d9dee8;
   --accent: #0b7a75;
   --accent-dark: #075f5b;
+  --accent-border: rgba(11, 122, 117, 0.25);
+  --accent-comment-border: rgba(11, 122, 117, 0.42);
+  --accent-soft: rgba(11, 122, 117, 0.08);
+  --accent-soft-hover: rgba(11, 122, 117, 0.12);
+  --accent-soft-strong: rgba(11, 122, 117, 0.16);
+  --accent-focus: rgba(11, 122, 117, 0.15);
+  --accent-focus-strong: rgba(11, 122, 117, 0.18);
   --danger: #b42318;
+  --danger-fill: #b42318;
+  --danger-soft: rgba(180, 35, 24, 0.08);
+  --danger-focus: rgba(180, 35, 24, 0.12);
+  --toggle-border: #98a2b3;
+  --toggle-bg: #d0d5dd;
+  --toggle-knob: #ffffff;
+  --paused-text: #667085;
+  --paused-bg: #eaecf0;
+  --menu-icon: #4f463f;
+  --menu-icon-hover: #2f2925;
+  --menu-hover: rgba(79, 70, 63, 0.1);
+  --count-text: #5f6b7a;
+  --scrollbar-thumb: rgba(102, 112, 133, 0.55);
   --shadow: 0 12px 30px rgba(20, 32, 50, 0.14);
+  --rule-shadow: 0 6px 16px rgba(20, 32, 50, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #11161d;
+    --panel: #1a212b;
+    --control-bg: #202936;
+    --control-disabled-bg: #252d38;
+    --subtle-bg: #252e3a;
+    --empty-bg: rgba(26, 33, 43, 0.62);
+    --text: #edf1f5;
+    --muted: #aab4c0;
+    --disabled-text: #788391;
+    --line: #364150;
+    --accent: #0b7a75;
+    --accent-dark: #6edbd2;
+    --accent-border: rgba(110, 219, 210, 0.32);
+    --accent-comment-border: rgba(110, 219, 210, 0.48);
+    --accent-soft: rgba(110, 219, 210, 0.1);
+    --accent-soft-hover: rgba(110, 219, 210, 0.16);
+    --accent-soft-strong: rgba(110, 219, 210, 0.22);
+    --accent-focus: rgba(110, 219, 210, 0.22);
+    --accent-focus-strong: rgba(110, 219, 210, 0.28);
+    --danger: #ff9b91;
+    --danger-fill: #b42318;
+    --danger-soft: rgba(255, 155, 145, 0.12);
+    --danger-focus: rgba(255, 155, 145, 0.2);
+    --toggle-border: #667281;
+    --toggle-bg: #46515f;
+    --toggle-knob: #f5f7fa;
+    --paused-text: #aab4c0;
+    --paused-bg: #2a333f;
+    --menu-icon: #b7c0ca;
+    --menu-icon-hover: #edf1f5;
+    --menu-hover: rgba(183, 192, 202, 0.12);
+    --count-text: #b7c0ca;
+    --scrollbar-thumb: rgba(170, 180, 192, 0.5);
+    --shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+    --rule-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  }
 }
 
 * {
@@ -74,9 +142,9 @@ select {
   height: 16px;
   margin: 0;
   padding: 0;
-  border: 1px solid #98a2b3;
+  border: 1px solid var(--toggle-border);
   border-radius: 999px;
-  background: #d0d5dd;
+  background: var(--toggle-bg);
   appearance: none;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -89,7 +157,7 @@ select {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--toggle-knob);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.2);
   content: "";
   transition: transform 0.15s ease;
@@ -106,7 +174,7 @@ select {
 
 .master-toggle input[type="checkbox"]:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(11, 122, 117, 0.18);
+  box-shadow: 0 0 0 3px var(--accent-focus-strong);
 }
 
 h1 {
@@ -163,7 +231,7 @@ h1 {
   padding: 2px 6px;
   border-radius: 999px;
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.1);
+  background: var(--accent-soft-hover);
   font-size: 10px;
   font-weight: 800;
   line-height: 1.2;
@@ -171,8 +239,8 @@ h1 {
 }
 
 .profile-current-badge.is-paused {
-  color: #667085;
-  background: #eaecf0;
+  color: var(--paused-text);
+  background: var(--paused-bg);
   text-decoration: line-through;
 }
 
@@ -184,7 +252,7 @@ h1 {
   width: 28px;
   height: 28px;
   border-color: transparent;
-  color: #4f463f;
+  color: var(--menu-icon);
   background: transparent;
   border-radius: 999px;
 }
@@ -206,8 +274,8 @@ h1 {
 
 .menu-button:hover,
 .menu-button[aria-expanded="true"] {
-  color: #2f2925;
-  background: rgba(79, 70, 63, 0.1);
+  color: var(--menu-icon-hover);
+  background: var(--menu-hover);
 }
 
 .profile-menu-panel {
@@ -245,10 +313,10 @@ h1 {
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid rgba(11, 122, 117, 0.25);
+  border: 1px solid var(--accent-border);
   border-radius: 6px;
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
   cursor: pointer;
   font-size: 16px;
   font-weight: 700;
@@ -258,14 +326,14 @@ h1 {
 .profile-add-button:hover,
 .profile-add-button:focus-visible {
   border-color: var(--accent);
-  background: rgba(11, 122, 117, 0.12);
+  background: var(--accent-soft-hover);
   outline: none;
 }
 
 .profile-add-button:disabled {
   border-color: var(--line);
-  color: #98a2b3;
-  background: #f2f4f7;
+  color: var(--disabled-text);
+  background: var(--control-disabled-bg);
   cursor: not-allowed;
 }
 
@@ -302,10 +370,10 @@ h1 {
 .profile-activate {
   min-height: 28px;
   padding: 4px 7px;
-  border: 1px solid rgba(11, 122, 117, 0.25);
+  border: 1px solid var(--accent-border);
   border-radius: 6px;
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -336,12 +404,12 @@ h1 {
 .profile-menu-item:hover,
 .profile-menu-item:focus-visible {
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
   outline: none;
 }
 
 .profile-menu-item.is-viewed {
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
 }
 
 .profile-menu-check {
@@ -368,7 +436,7 @@ h1 {
 
 .profile-delete:hover,
 .profile-delete:focus-visible {
-  background: rgba(180, 35, 24, 0.08);
+  background: var(--danger-soft);
   outline: none;
 }
 
@@ -389,16 +457,16 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--muted);
-  background: #ffffff;
+  background: var(--control-bg);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
 }
 
 .profile-delete-confirm button:first-of-type {
-  border-color: var(--danger);
-  color: #ffffff;
-  background: var(--danger);
+  border-color: var(--danger-fill);
+  color: var(--on-accent);
+  background: var(--danger-fill);
 }
 
 .profile-delete-confirm button:hover,
@@ -435,7 +503,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--muted);
-  background: #ffffff;
+  background: var(--control-bg);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -448,7 +516,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--muted);
-  background: #ffffff;
+  background: var(--control-bg);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -490,7 +558,7 @@ h1 {
 }
 
 .profile-transfer-option:hover {
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
 }
 
 .profile-transfer-option input {
@@ -527,14 +595,14 @@ h1 {
 
 .profile-transfer-footer button:last-child {
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   background: var(--accent);
 }
 
 .profile-transfer-footer button:disabled {
   border-color: var(--line);
-  color: #98a2b3;
-  background: #f2f4f7;
+  color: var(--disabled-text);
+  background: var(--control-disabled-bg);
   cursor: not-allowed;
 }
 
@@ -545,7 +613,7 @@ h1 {
 
 .profile-name-input.has-error {
   border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.12);
+  box-shadow: 0 0 0 3px var(--danger-focus);
 }
 
 .profile-create-error {
@@ -567,7 +635,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--muted);
-  background: #ffffff;
+  background: var(--control-bg);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -575,7 +643,7 @@ h1 {
 
 .profile-create-actions button:first-child {
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   background: var(--accent);
 }
 
@@ -650,8 +718,8 @@ h1 {
   min-width: 17px;
   padding: 1px 5px;
   border-radius: 999px;
-  color: #5f6b7a;
-  background: #eef1f6;
+  color: var(--count-text);
+  background: var(--subtle-bg);
   font-size: 10px;
   font-weight: 700;
   line-height: 1.3;
@@ -660,7 +728,7 @@ h1 {
 
 .tab-count.has-count {
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.12);
+  background: var(--accent-soft-hover);
 }
 
 .rules {
@@ -720,10 +788,10 @@ h1 {
   place-items: center;
   width: 24px;
   height: 24px;
-  border: 1px solid rgba(11, 122, 117, 0.25);
+  border: 1px solid var(--accent-border);
   border-radius: 6px;
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
   cursor: pointer;
   font-size: 17px;
   line-height: 1;
@@ -732,7 +800,7 @@ h1 {
 .section-add-button:hover,
 .section-add-button:focus-visible {
   border-color: var(--accent);
-  background: rgba(11, 122, 117, 0.12);
+  background: var(--accent-soft-hover);
   outline: none;
 }
 
@@ -752,7 +820,7 @@ h1 {
   padding-top: 10px;
   padding-right: 0;
   scrollbar-gutter: stable;
-  scrollbar-color: rgba(102, 112, 133, 0.55) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
   scrollbar-width: thin;
 }
 
@@ -766,7 +834,7 @@ h1 {
 
 .rules-shell::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(102, 112, 133, 0.55);
+  background: var(--scrollbar-thumb);
 }
 
 .rules-head,
@@ -809,7 +877,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 50%;
   color: var(--accent-dark);
-  background: #ffffff;
+  background: var(--control-bg);
   cursor: pointer;
   font-size: 10px;
   line-height: 1;
@@ -829,7 +897,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
-  background: #ffffff;
+  background: var(--panel);
   box-shadow: var(--shadow);
   font-size: 11px;
   font-weight: 500;
@@ -899,7 +967,7 @@ h1 {
 
 .help-grid-head {
   color: var(--text);
-  background: #eef1f6;
+  background: var(--subtle-bg);
   font-weight: 700;
 }
 
@@ -944,7 +1012,7 @@ h1 {
   border-radius: 8px;
   color: var(--muted);
   text-align: center;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--empty-bg);
 }
 
 .rule {
@@ -953,7 +1021,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: 0 6px 16px rgba(20, 32, 50, 0.08);
+  box-shadow: var(--rule-shadow);
 }
 
 .cookie-rule {
@@ -1147,7 +1215,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
-  background: #ffffff;
+  background: var(--control-bg);
   padding: 4px 7px;
   outline: none;
 }
@@ -1182,7 +1250,7 @@ select {
   border: 0;
   border-radius: 4px;
   color: var(--accent-dark);
-  background: rgba(11, 122, 117, 0.08);
+  background: var(--accent-soft);
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
@@ -1191,7 +1259,7 @@ select {
 
 .operation-toggle:hover,
 .operation-toggle:focus-visible {
-  background: rgba(11, 122, 117, 0.16);
+  background: var(--accent-soft-strong);
   outline: none;
 }
 
@@ -1201,7 +1269,7 @@ select {
 
 .value:disabled {
   color: var(--muted);
-  background: #f2f4f7;
+  background: var(--control-disabled-bg);
   cursor: not-allowed;
 }
 
@@ -1217,7 +1285,7 @@ input[type="checkbox"] {
 input:focus,
 select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(11, 122, 117, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
 .detail-check input {
@@ -1225,10 +1293,10 @@ select:focus {
 }
 
 .comment.has-comment {
-  border-color: rgba(11, 122, 117, 0.42);
+  border-color: var(--accent-comment-border);
   color: var(--text);
   font-weight: 600;
-  background: rgba(11, 122, 117, 0.07);
+  background: var(--accent-soft);
 }
 
 .rule.removing {
