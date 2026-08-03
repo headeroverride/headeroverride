@@ -93,6 +93,7 @@ async function main() {
   const captureDir = await fs.mkdtemp(path.join(os.tmpdir(), "header-override-captures-"));
   const context = await chromium.launchPersistentContext(userDataDir, {
     acceptDownloads: false,
+    colorScheme: "light",
     headless: false,
     args: [
       `--disable-extensions-except=${extensionDir}`,

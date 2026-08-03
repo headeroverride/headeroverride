@@ -1039,6 +1039,33 @@ test("defaults new response cookie SameSite selections to Lax", async () => {
   }
 });
 
+test("aligns new session response cookie fields with existing editors", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseCookieRule({ id: "existing-response-cookie" })]);
+    await extension.extensionPage.reload();
+
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+    await extension.extensionPage.getByRole("button", { name: "Edit" }).click();
+    await extension.extensionPage.getByRole("button", { name: "Add response cookie rule", exact: true }).click();
+
+    const responseCookieRules = extension.extensionPage.locator(".response-cookie-rule");
+    await expect(responseCookieRules).toHaveCount(2);
+
+    for (const rule of await responseCookieRules.all()) {
+      await expect(rule.locator(".cookie-response-fields .detail-editor")).toHaveClass(/is-session/);
+      await expect(rule.locator(".detail-field-max-age")).toBeHidden();
+
+      const domainPosition = await rule.locator(".domain").evaluate((input) => input.closest("label")?.offsetTop);
+      const securePosition = await rule.locator(".secure").evaluate((input) => input.closest("label")?.offsetTop);
+      expect(securePosition).toBe(domainPosition);
+    }
+  } finally {
+    await extension.close();
+  }
+});
+
 test("adds rules from grouped request and response sections", async () => {
   const extension = await launchExtension();
 

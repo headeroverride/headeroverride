@@ -982,6 +982,7 @@ function updateHeaderOperation(node, kind, operation) {
 function updateCookieOperation(node, kind, operation) {
   const toggle = node.querySelector(".operation-toggle");
   const value = node.querySelector(".value");
+  const session = node.querySelector(".cookie-response-fields .session");
   const normalizedOperation = getCookieOperation({ operation });
   const isResponse = kind === "responseCookie";
 
@@ -1002,7 +1003,8 @@ function updateCookieOperation(node, kind, operation) {
     for (const selector of [".same-site", ".session", ".max-age", ".secure"]) {
       const field = node.querySelector(`.cookie-response-fields ${selector}`)?.closest("label, .detail-check");
       if (field) {
-        field.hidden = normalizedOperation === "delete";
+        const isSessionMaxAge = selector === ".max-age" && getControlValue(session, "true") !== "false";
+        field.hidden = normalizedOperation === "delete" || isSessionMaxAge;
       }
     }
   }
@@ -1038,6 +1040,7 @@ function updateCookieDirection(node, ruleId, kind, sessionValue) {
   const responseFields = node.querySelector(".cookie-response-fields");
   const maxAge = node.querySelector(".cookie-response-fields .max-age");
   const maxAgeField = maxAge?.closest(".detail-field");
+  const isDeleteOperation = getCookieOperation({ operation: node.dataset.operation }) === "delete";
 
   if (!requestFields || !responseFields) {
     return;
@@ -1055,7 +1058,7 @@ function updateCookieDirection(node, ruleId, kind, sessionValue) {
   requestFields.hidden = true;
   responseFields.hidden = isRequest;
   if (maxAgeField) {
-    maxAgeField.hidden = sessionValue !== "false";
+    maxAgeField.hidden = isDeleteOperation || sessionValue !== "false";
   }
   responseFields?.querySelector(".detail-editor")?.classList.toggle("is-session", sessionValue !== "false");
   if (isRequest) {
