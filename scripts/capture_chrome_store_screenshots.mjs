@@ -154,6 +154,13 @@ async function main() {
       animations: "disabled"
     });
 
+    await popupPage.emulateMedia({ colorScheme: "dark" });
+    await popupPage.screenshot({
+      path: path.join(captureDir, "popup-profiles-dark.png"),
+      animations: "disabled"
+    });
+    await popupPage.emulateMedia({ colorScheme: "light" });
+
     await renderProfileDropdownZoom(context, captureDir);
     await renderFeatureScreenshots(context, captureDir);
     await renderMarqueePromoTile(context, captureDir);
@@ -216,6 +223,14 @@ async function renderFeatureScreenshots(context, captureDir) {
       title: "Profiles for development, QA, and demos",
       body: "Group rule sets, switch the active profile, and import or export configurations for repeatable testing.",
       accent: "Profiles"
+    },
+    {
+      slug: "profiles-dark",
+      capture: "popup-profiles-dark.png",
+      title: "Dark mode that follows your browser",
+      body: "The popup automatically follows your browser's light or dark preference for a comfortable debugging workflow.",
+      accent: "Automatic theme",
+      theme: "dark"
     }
   ];
 
@@ -552,7 +567,7 @@ function profileDropdownZoomHtml({ imageData }) {
 </html>`;
 }
 
-function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
+function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme = "light" }) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -742,6 +757,67 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData }) {
         width: 900px;
         height: 636px;
       }
+
+      ${theme === "dark" ? `
+      :root {
+        color-scheme: dark;
+        --bg: #11161d;
+        --ink: #edf1f5;
+        --muted: #aab4c0;
+        --line: #364150;
+        --accent: #6edbd2;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 88% 16%, rgba(110, 219, 210, 0.1), transparent 27%),
+          linear-gradient(180deg, #171e27 0%, var(--bg) 100%);
+      }
+
+      .eyebrow {
+        color: #6edbd2;
+        background: rgba(110, 219, 210, 0.12);
+      }
+
+      .browser,
+      .chrome {
+        background: #1a212b;
+      }
+
+      .browser {
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+      }
+
+      .address {
+        background: #202936;
+      }
+
+      .toolbar-icon {
+        border-color: rgba(110, 219, 210, 0.3);
+        background: rgba(110, 219, 210, 0.1);
+      }
+
+      .toolbar-badge {
+        border-color: #1a212b;
+      }
+
+      .page {
+        background:
+          linear-gradient(90deg, rgba(26, 33, 43, 0.96) 0 34%, rgba(26, 33, 43, 0.56) 50%, rgba(26, 33, 43, 0) 100%),
+          linear-gradient(180deg, #1a212b 0%, #11161d 100%);
+      }
+
+      .popup-anchor {
+        border-color: #46515f;
+        background: #11161d;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+      }
+
+      .popup-anchor::before {
+        border-color: #46515f;
+        background: #11161d;
+      }
+      ` : ""}
     </style>
   </head>
   <body>
