@@ -67,6 +67,58 @@ test("applies configured response header overrides to browser-visible responses"
   }
 });
 
+test("replaces an existing response header", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseHeaderRule({
+      id: "replace-response-header-rule",
+      header: "X-E2E-Delete-Target",
+      value: "replacement-value",
+      operation: "set"
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const headerValue = await page.evaluate(async () => {
+      const response = await fetch("/delete-target");
+      return response.headers.get("x-e2e-delete-target");
+    });
+
+    expect(headerValue).toBe("replacement-value");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("replaces an existing Access-Control-Allow-Origin response header", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [responseHeaderRule({
+      id: "replace-access-control-allow-origin-rule",
+      header: "Access-Control-Allow-Origin",
+      value: "https://replacement.example",
+      operation: "set"
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const headerValue = await page.evaluate(async () => {
+      const response = await fetch("/access-control-allow-origin");
+      return response.headers.get("access-control-allow-origin");
+    });
+
+    expect(headerValue).toBe("https://replacement.example");
+  } finally {
+    await extension.close();
+  }
+});
+
 test("appends configured request cookies to outgoing requests", async () => {
   const extension = await launchExtension();
 

@@ -80,6 +80,15 @@ function handleRequest(request: IncomingMessage, response: ServerResponse) {
     return;
   }
 
+  if (url.pathname === "/access-control-allow-origin") {
+    response.writeHead(204, {
+      "Access-Control-Allow-Origin": "https://server.example",
+      "Cache-Control": "no-store"
+    });
+    response.end();
+    return;
+  }
+
   if (url.pathname === "/delete-target" || url.pathname === "/delete-target/scoped") {
     response.writeHead(200, {
       "Content-Type": "text/plain; charset=utf-8",
