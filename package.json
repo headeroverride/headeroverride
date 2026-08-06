@@ -1,17 +1,24 @@
 {
   "name": "header-override",
   "private": true,
-  "version": "1.0.8",
+  "type": "module",
+  "version": "1.0.9",
   "scripts": {
-    "package:extension": "node scripts/package_extension.mjs all",
-    "package:extension:chrome": "node scripts/package_extension.mjs chrome",
-    "package:extension:edge": "node scripts/package_extension.mjs edge",
-    "package:extension:firefox": "node scripts/package_extension.mjs firefox",
+    "build": "node scripts/build_extension.mjs",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "pretest:e2e": "npm run build",
+    "package:extension": "npm run build && node scripts/package_extension.mjs all",
+    "package:extension:chrome": "npm run build && node scripts/package_extension.mjs chrome",
+    "package:extension:edge": "npm run build && node scripts/package_extension.mjs edge",
+    "package:extension:firefox": "npm run build && node scripts/package_extension.mjs firefox",
+    "prescreenshots:generated": "npm run build",
     "screenshots:generated": "node scripts/capture_chrome_store_screenshots.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.55.0",
+    "esbuild": "^0.28.1"
   }
 }

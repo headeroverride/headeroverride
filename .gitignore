@@ -6,6 +6,7 @@ node_modules/
 
 # Release packages
 dist/
+extension/build/
 
 # Separate website repo
 website/

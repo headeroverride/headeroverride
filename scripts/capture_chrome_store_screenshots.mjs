@@ -106,7 +106,7 @@ async function main() {
     const extensionId = await getExtensionId(context);
     const popupPage = await context.newPage();
     await popupPage.setViewportSize({ width: 760, height: 520 });
-    await popupPage.goto(`chrome-extension://${extensionId}/src/popup.html`);
+    await popupPage.goto(`chrome-extension://${extensionId}/build/popup.html`);
     await seedPopup(popupPage, "headers");
 
     await popupPage.screenshot({

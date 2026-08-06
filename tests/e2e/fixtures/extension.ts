@@ -40,15 +40,23 @@ export type ExtensionHarness = {
   close: () => Promise<void>;
 };
 
-export async function launchExtension(): Promise<ExtensionHarness> {
+export type LaunchExtensionOptions = {
+  extensionPath?: string;
+  userDataDir?: string;
+};
+
+export async function launchExtension(options: LaunchExtensionOptions = {}): Promise<ExtensionHarness> {
   if (process.env.E2E_BROWSER === "firefox") {
     throw new Error(
       "Firefox is installed, but this E2E harness loads the MV3 extension through Chromium's unpacked-extension flow. Use Chromium or msedge, or add a Firefox-specific WebExtension harness."
     );
   }
 
-  const extensionPath = path.resolve(process.cwd(), "extension");
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "header-override-e2e-"));
+  const extensionPath = path.resolve(options.extensionPath || path.join(process.cwd(), "extension"));
+  const userDataDir = options.userDataDir
+    ? path.resolve(options.userDataDir)
+    : fs.mkdtempSync(path.join(os.tmpdir(), "header-override-e2e-"));
+  fs.mkdirSync(userDataDir, { recursive: true });
   const context = await chromium.launchPersistentContext(userDataDir, {
     acceptDownloads: true,
     channel: process.env.E2E_BROWSER_CHANNEL || undefined,
@@ -62,7 +70,7 @@ export async function launchExtension(): Promise<ExtensionHarness> {
   const extensionId = new URL(serviceWorker.url()).host;
   const extensionPage = await context.newPage();
 
-  await extensionPage.goto(`chrome-extension://${extensionId}/src/popup.html`);
+  await extensionPage.goto(`chrome-extension://${extensionId}/build/popup.html`);
 
   return {
     context,
@@ -73,6 +81,10 @@ export async function launchExtension(): Promise<ExtensionHarness> {
 }
 
 export async function seedRules(extensionPage: Page, rules: OverrideRule[]) {
+  await seedStorageData(extensionPage, createStorageData(rules));
+}
+
+export async function seedStorageData(extensionPage: Page, data: unknown) {
   await extensionPage.evaluate(
     async ({ storageKey, syncStatusKey, data }) => {
       await chrome.storage.local.remove(syncStatusKey);
@@ -81,7 +93,7 @@ export async function seedRules(extensionPage: Page, rules: OverrideRule[]) {
     {
       storageKey: STORAGE_KEY,
       syncStatusKey: SYNC_STATUS_KEY,
-      data: createStorageData(rules)
+      data
     }
   );
 }

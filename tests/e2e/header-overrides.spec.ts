@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import {
   launchExtension,
   readStoredRules,
@@ -11,6 +13,7 @@ import {
   seedLegacyRules,
   seedProfiles,
   seedRules,
+  seedStorageData,
   waitForAppliedRuleCount
 } from "./fixtures/extension";
 import { startTestServer, type TestServer } from "./fixtures/test-server";
@@ -62,6 +65,38 @@ test("applies configured response header overrides to browser-visible responses"
     });
 
     expect(headerValue).toBe("response-value");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("overrides an existing response header returned by the server", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, []);
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const serverHeaderValue = await page.evaluate(async () => {
+      const response = await fetch("/delete-target");
+      return response.headers.get("x-e2e-delete-target");
+    });
+    expect(serverHeaderValue).toBe("server-value");
+
+    await seedRules(extension.extensionPage, [responseHeaderRule({
+      header: "X-E2E-Delete-Target",
+      value: "overridden-value"
+    })]);
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const overriddenHeaderValue = await page.evaluate(async () => {
+      const response = await fetch("/delete-target");
+      return response.headers.get("x-e2e-delete-target");
+    });
+    expect(overriddenHeaderValue).toBe("overridden-value");
   } finally {
     await extension.close();
   }
@@ -1110,6 +1145,67 @@ test("allows up to five profiles before showing the profile limit", async () => 
   }
 });
 
+test("deletes an inactive profile without changing the active profile", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedProfiles(
+      extension.extensionPage,
+      [
+        {
+          id: "profile-one",
+          name: "Profile 1",
+          rules: [requestHeaderRule({
+            id: "profile-one-rule",
+            header: "X-E2E-Profile-One",
+            value: "profile-one-value"
+          })]
+        },
+        {
+          id: "profile-two",
+          name: "Profile 2",
+          rules: [requestHeaderRule({
+            id: "profile-two-rule",
+            header: "X-E2E-Profile-Two",
+            value: "profile-two-value"
+          })]
+        }
+      ],
+      "profile-one"
+    );
+    await extension.extensionPage.reload();
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
+    const profileTwoRow = extension.extensionPage.locator(".profile-menu-row").filter({ hasText: "Profile 2" });
+    await profileTwoRow.getByRole("button", { name: "Delete Profile 2" }).click();
+    await expect(profileTwoRow.getByText("Delete?")).toBeVisible();
+    await profileTwoRow.getByRole("button", { name: "Yes", exact: true }).click();
+
+    await expect(extension.extensionPage.getByText("Profile 2", { exact: true })).toHaveCount(0);
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return {
+        activeProfileId: stored.activeProfileId,
+        profileIds: stored.profiles.map((profile) => profile.id)
+      };
+    }).toEqual({
+      activeProfileId: "profile-one",
+      profileIds: ["profile-one"]
+    });
+    await waitForAppliedRuleCount(extension.extensionPage, 1);
+
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+    const echo = await page.evaluate(async () => (await fetch("/echo")).json());
+
+    expect(echo.headers["x-e2e-profile-one"]).toBe("profile-one-value");
+    expect(echo.headers["x-e2e-profile-two"]).toBeUndefined();
+  } finally {
+    await extension.close();
+  }
+});
+
 test("exports and imports selected profiles from the profile menu", async () => {
   const extension = await launchExtension();
 
@@ -1338,6 +1434,157 @@ test("skips invalid rules and reports warning sync status", async () => {
     }).toBe("warning:1 invalid rule skipped.");
   } finally {
     await extension.close();
+  }
+});
+
+test("preserves configured profiles and working rules across an extension version upgrade", async () => {
+  const upgradeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "header-override-upgrade-e2e-"));
+  const extensionPath = path.join(upgradeRoot, "extension");
+  const userDataDir = path.join(upgradeRoot, "browser-profile");
+  const manifestPath = path.join(extensionPath, "manifest.json");
+
+  try {
+    await fs.cp(path.resolve(process.cwd(), "extension"), extensionPath, { recursive: true });
+    const currentManifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    const previousVersionParts = currentManifest.version.split(".").map(Number);
+    let previousVersion = "";
+
+    for (let index = previousVersionParts.length - 1; index >= 0; index -= 1) {
+      if (previousVersionParts[index] > 0) {
+        previousVersionParts[index] -= 1;
+        previousVersion = previousVersionParts.join(".");
+        break;
+      }
+    }
+
+    if (!previousVersion) {
+      throw new Error(`Could not derive a previous version from ${currentManifest.version}.`);
+    }
+
+    await fs.writeFile(
+      manifestPath,
+      `${JSON.stringify({ ...currentManifest, version: previousVersion }, null, 2)}\n`
+    );
+
+    const configuredRules = [
+      requestHeaderRule({
+        id: "upgrade-request-header",
+        header: "X-E2E-Upgrade-Request",
+        value: "upgrade-request-value"
+      }),
+      responseHeaderRule({
+        id: "upgrade-response-header",
+        header: "X-E2E-Upgrade-Response",
+        value: "upgrade-response-value"
+      }),
+      requestCookieRule({
+        id: "upgrade-request-cookie",
+        name: "e2e_upgrade_request_cookie",
+        value: "upgrade-request-cookie-value"
+      }),
+      responseCookieRule({
+        id: "upgrade-response-cookie",
+        name: "e2e_upgrade_response_cookie",
+        value: "upgrade-response-cookie-value"
+      }),
+      requestHeaderRule({
+        id: "upgrade-disabled-rule",
+        enabled: false,
+        header: "X-E2E-Upgrade-Disabled",
+        value: "must-not-apply"
+      })
+    ];
+    const preUpgradeStorage = {
+      schemaVersion: 4,
+      rulesEnabled: true,
+      masterToggleSnapshot: null,
+      activeProfileId: "upgrade-active-profile",
+      profiles: [
+        {
+          id: "upgrade-active-profile",
+          name: "Upgrade Active",
+          rules: configuredRules
+        },
+        {
+          id: "upgrade-inactive-profile",
+          name: "Upgrade Inactive",
+          rules: [requestHeaderRule({
+            id: "upgrade-inactive-rule",
+            header: "X-E2E-Upgrade-Inactive",
+            value: "must-not-apply"
+          })]
+        }
+      ]
+    };
+
+    const installedExtension = await launchExtension({ extensionPath, userDataDir });
+    const extensionId = installedExtension.extensionId;
+
+    try {
+      await seedStorageData(installedExtension.extensionPage, preUpgradeStorage);
+      await waitForAppliedRuleCount(installedExtension.extensionPage, 4);
+      expect((await readStoredRules(installedExtension.extensionPage)).schemaVersion).toBe(4);
+    } finally {
+      await installedExtension.close();
+    }
+
+    await fs.writeFile(manifestPath, `${JSON.stringify(currentManifest, null, 2)}\n`);
+
+    const upgradedExtension = await launchExtension({ extensionPath, userDataDir });
+
+    try {
+      expect(upgradedExtension.extensionId).toBe(extensionId);
+      await waitForAppliedRuleCount(upgradedExtension.extensionPage, 4);
+
+      const upgradedStorage = await readStoredRules(upgradedExtension.extensionPage);
+      expect(upgradedStorage).toMatchObject({
+        schemaVersion: 5,
+        rulesEnabled: true,
+        masterToggleSnapshot: null,
+        activeProfileId: "upgrade-active-profile"
+      });
+      expect(upgradedStorage.profiles.map((profile) => ({ id: profile.id, name: profile.name }))).toEqual([
+        { id: "upgrade-active-profile", name: "Upgrade Active" },
+        { id: "upgrade-inactive-profile", name: "Upgrade Inactive" }
+      ]);
+      expect(upgradedStorage.profiles[0].rules.map((rule) => ({
+        id: rule.id,
+        kind: rule.kind,
+        enabled: rule.enabled
+      }))).toEqual(configuredRules.map((rule) => ({
+        id: rule.id,
+        kind: rule.kind,
+        enabled: rule.enabled
+      })));
+      expect(upgradedStorage.profiles[1].rules[0]).toMatchObject({
+        id: "upgrade-inactive-rule",
+        enabled: true,
+        header: "X-E2E-Upgrade-Inactive"
+      });
+      await expect.poll(async () => upgradedExtension.extensionPage.evaluate(() => chrome.action.getBadgeText({})))
+        .toBe("4");
+
+      const page = await upgradedExtension.context.newPage();
+      await page.goto(server.origin);
+      const echo = await page.evaluate(async () => (await fetch("/echo")).json());
+      const responseHeaderValue = await page.evaluate(async () => {
+        const response = await fetch("/empty");
+        return response.headers.get("x-e2e-upgrade-response");
+      });
+      const cookies = await upgradedExtension.context.cookies(server.origin);
+
+      expect(echo.headers["x-e2e-upgrade-request"]).toBe("upgrade-request-value");
+      expect(echo.headers.cookie).toContain("e2e_upgrade_request_cookie=upgrade-request-cookie-value");
+      expect(echo.headers["x-e2e-upgrade-disabled"]).toBeUndefined();
+      expect(echo.headers["x-e2e-upgrade-inactive"]).toBeUndefined();
+      expect(responseHeaderValue).toBe("upgrade-response-value");
+      expect(cookies.find((cookie) => cookie.name === "e2e_upgrade_response_cookie")?.value)
+        .toBe("upgrade-response-cookie-value");
+    } finally {
+      await upgradedExtension.close();
+    }
+  } finally {
+    await fs.rm(upgradeRoot, { recursive: true, force: true });
   }
 });
 
