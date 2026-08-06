@@ -11,6 +11,8 @@ import {
   ruleKind
 } from "../shared/model.js";
 import { createProfilesExport, mergeProfiles, readProfilesJson } from "./profile-transfer.js";
+import { hasRequiredHostAccess, requestRequiredHostAccess } from "../platform/permissions.js";
+import { requestRuleSync } from "../platform/runtime.js";
 import { readStorage, writeStorage } from "../platform/storage.js";
 import { createQueuedStorageWriter, saveSelectedTab } from "./persistence.js";
 import { createRuleListView } from "./views/rule-list-view.js";
@@ -29,6 +31,9 @@ const profileMenuButton = document.querySelector("#profile-menu-button");
 const profileMenu = document.querySelector("#profile-menu");
 const profileCurrent = document.querySelector("#profile-current");
 const globalRulesToggle = document.querySelector("#global-rules-toggle");
+const hostAccessBanner = document.querySelector("#host-access-banner");
+const hostAccessMessage = document.querySelector("#host-access-message");
+const grantHostAccessButton = document.querySelector("#grant-host-access");
 const tabs = Array.from(document.querySelectorAll(".tab"));
 const countNodes = Array.from(document.querySelectorAll("[data-count]"));
 const importProfilesInput = document.createElement("input");
@@ -46,6 +51,8 @@ let viewedProfileId = activeProfileId;
 let rules = [];
 let rulesEnabled = true;
 let masterToggleSnapshot = null;
+let hostAccessGranted = true;
+let hostAccessError = "";
 const expandedCookieDetails = new Set();
 const ruleListView = createRuleListView({
   rulesContainer,
@@ -71,7 +78,10 @@ const saveNow = createQueuedStorageWriter(STORAGE_KEY, () => {
 init();
 
 async function init() {
-  const stored = await readStorage([STORAGE_KEY, POPUP_STATE_KEY]);
+  const [stored] = await Promise.all([
+    readStorage([STORAGE_KEY, POPUP_STATE_KEY]),
+    refreshHostAccess(false)
+  ]);
   storageData = readStorageData(stored[STORAGE_KEY]);
   activeTab = readActiveTab(stored[POPUP_STATE_KEY]?.activeTab);
   profiles = storageData.profiles;
@@ -110,6 +120,33 @@ globalRulesToggle.addEventListener("change", () => {
   render();
   saveNow();
 });
+
+grantHostAccessButton.addEventListener("click", async () => {
+  grantHostAccessButton.disabled = true;
+  grantHostAccessButton.textContent = "Requesting…";
+  hostAccessError = "";
+
+  try {
+    hostAccessGranted = await requestRequiredHostAccess();
+    if (hostAccessGranted) {
+      await requestRuleSync();
+    } else {
+      hostAccessError = "Access was not granted. Enable website access in the browser's extension settings.";
+    }
+  } catch (error) {
+    console.error("Could not request website access.", error);
+    hostAccessGranted = false;
+    hostAccessError = "Open the browser's extension settings and allow access to all websites.";
+  } finally {
+    grantHostAccessButton.disabled = false;
+    grantHostAccessButton.textContent = "Grant access";
+    renderHostAccess();
+    renderCurrentProfile();
+  }
+});
+
+chrome.permissions?.onAdded?.addListener(() => refreshHostAccess());
+chrome.permissions?.onRemoved?.addListener(() => refreshHostAccess());
 
 importProfilesInput.addEventListener("change", async () => {
   const file = importProfilesInput.files?.[0];
@@ -307,6 +344,7 @@ document.addEventListener("keydown", (event) => {
 
 function render() {
   const rulesChanged = syncRulesToMasterState();
+  renderHostAccess();
   renderGlobalRulesToggle();
   renderCurrentProfile();
   renderProfileMenu();
@@ -314,6 +352,28 @@ function render() {
   if (rulesChanged) {
     saveNow();
   }
+}
+
+async function refreshHostAccess(shouldRender = true) {
+  try {
+    hostAccessGranted = await hasRequiredHostAccess();
+    hostAccessError = "";
+  } catch (error) {
+    console.error("Could not check website access.", error);
+    hostAccessGranted = false;
+    hostAccessError = "Could not verify website access. Check the browser's extension settings.";
+  }
+
+  if (shouldRender) {
+    renderHostAccess();
+    renderCurrentProfile();
+  }
+}
+
+function renderHostAccess() {
+  hostAccessBanner.hidden = hostAccessGranted;
+  hostAccessMessage.textContent = hostAccessError
+    || "Allow access so the browser can apply your override rules.";
 }
 
 function syncRulesToMasterState() {
@@ -350,13 +410,15 @@ function renderCurrentProfile() {
   if (isActive) {
     const badge = document.createElement("span");
     badge.className = "profile-current-badge";
-    badge.classList.toggle("is-paused", !rulesEnabled);
-    badge.textContent = rulesEnabled ? "Active" : "Inactive";
+    badge.classList.toggle("is-paused", !rulesEnabled || !hostAccessGranted);
+    badge.textContent = !hostAccessGranted ? "No access" : rulesEnabled ? "Active" : "Inactive";
     profileCurrent.append(badge);
   }
 
   profileCurrent.title = isActive
-    ? rulesEnabled ? `${viewedProfile.name} is active` : `${viewedProfile.name} is paused`
+    ? !hostAccessGranted
+      ? `${viewedProfile.name} needs website access`
+      : rulesEnabled ? `${viewedProfile.name} is active` : `${viewedProfile.name} is paused`
     : viewedProfile.name;
 }
 

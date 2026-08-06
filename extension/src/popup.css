@@ -737,6 +737,55 @@ h1 {
   align-content: start;
 }
 
+.host-access-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--danger-soft);
+}
+
+.host-access-banner[hidden] {
+  display: none;
+}
+
+.host-access-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.host-access-copy strong {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.host-access-copy span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.host-access-banner button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--on-accent);
+  background: var(--danger-fill);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.host-access-banner button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .rule-section {
   display: grid;
   gap: 6px;

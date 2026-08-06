@@ -52,6 +52,13 @@
       </div>
 
       <section class="rules-shell" aria-label="Override rules">
+        <div id="host-access-banner" class="host-access-banner" role="alert" hidden>
+          <div class="host-access-copy">
+            <strong>Website access required</strong>
+            <span id="host-access-message">Allow access so the browser can apply your override rules.</span>
+          </div>
+          <button id="grant-host-access" type="button">Grant access</button>
+        </div>
         <div id="rules" class="rules"></div>
       </section>
     </main>

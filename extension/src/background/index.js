@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from "../shared/constants.js";
+import { STORAGE_KEY, SYNC_RULES_MESSAGE } from "../shared/constants.js";
 import { readStorageData } from "../shared/model.js";
 import { readStorage, writeStorage } from "../platform/storage.js";
 import { scheduleRuleSync } from "./sync.js";
@@ -15,6 +15,15 @@ chrome.runtime.onStartup.addListener(scheduleRuleSync);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local" && changes[STORAGE_KEY]) {
+    scheduleRuleSync();
+  }
+});
+
+chrome.permissions?.onAdded?.addListener(scheduleRuleSync);
+chrome.permissions?.onRemoved?.addListener(scheduleRuleSync);
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === SYNC_RULES_MESSAGE) {
     scheduleRuleSync();
   }
 });

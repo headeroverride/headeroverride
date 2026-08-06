@@ -1437,6 +1437,97 @@ test("skips invalid rules and reports warning sync status", async () => {
   }
 });
 
+test("grants website access from the popup and requests rule synchronization", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await extension.extensionPage.addInitScript(() => {
+      const state = {
+        granted: false,
+        permissionRequests: [] as unknown[],
+        syncMessages: [] as unknown[]
+      };
+
+      Object.defineProperty(chrome.permissions, "contains", {
+        configurable: true,
+        value: async () => state.granted
+      });
+      Object.defineProperty(chrome.permissions, "request", {
+        configurable: true,
+        value: async (permission: unknown) => {
+          state.permissionRequests.push(permission);
+          state.granted = true;
+          return true;
+        }
+      });
+      Object.defineProperty(chrome.runtime, "sendMessage", {
+        configurable: true,
+        value: async (message: unknown) => {
+          state.syncMessages.push(message);
+        }
+      });
+      Object.defineProperty(globalThis, "__hostAccessTestState", { value: state });
+    });
+    await extension.extensionPage.reload();
+
+    await expect(extension.extensionPage.locator("#host-access-banner")).toBeVisible();
+    await extension.extensionPage.getByRole("button", { name: "Grant access" }).click();
+
+    await expect(extension.extensionPage.locator("#host-access-banner")).toBeHidden();
+    await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("Active");
+    const state = await extension.extensionPage.evaluate(() =>
+      (globalThis as typeof globalThis & {
+        __hostAccessTestState: {
+          permissionRequests: unknown[];
+          syncMessages: unknown[];
+        };
+      }).__hostAccessTestState
+    );
+    expect(state.permissionRequests).toEqual([{ origins: ["<all_urls>"] }]);
+    expect(state.syncMessages).toEqual([{ type: "syncOverrideRules" }]);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("reports missing website access and stops applying rules", async () => {
+  const deniedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "header-override-no-access-e2e-"));
+  const extensionPath = path.join(deniedRoot, "extension");
+  const userDataDir = path.join(deniedRoot, "browser-profile");
+
+  try {
+    await fs.cp(path.resolve(process.cwd(), "extension"), extensionPath, { recursive: true });
+    const manifestPath = path.join(extensionPath, "manifest.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    await fs.writeFile(manifestPath, `${JSON.stringify({ ...manifest, host_permissions: [] }, null, 2)}\n`);
+
+    const extension = await launchExtension({ extensionPath, userDataDir });
+
+    try {
+      await seedRules(extension.extensionPage, [requestHeaderRule()]);
+      await extension.extensionPage.reload();
+
+      await expect(extension.extensionPage.locator("#host-access-banner")).toBeVisible();
+      await expect(extension.extensionPage.getByText("Website access required")).toBeVisible();
+      await expect(extension.extensionPage.getByRole("button", { name: "Grant access" })).toBeVisible();
+      await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("No access");
+      await expect.poll(async () => {
+        const syncStatus = await readSyncStatus(extension.extensionPage);
+        return `${syncStatus.level}:${syncStatus.message}:${syncStatus.appliedCount}`;
+      }).toBe("error:Website access is required before override rules can be applied.:0");
+      await expect.poll(async () => extension.extensionPage.evaluate(() => chrome.action.getBadgeText({})))
+        .toBe("!");
+      await expect.poll(async () => extension.extensionPage.evaluate(async () =>
+        (await chrome.declarativeNetRequest.getDynamicRules()).length
+      )).toBe(0);
+    } finally {
+      await extension.close();
+    }
+  } finally {
+    await fs.rm(deniedRoot, { recursive: true, force: true });
+  }
+});
+
 test("preserves configured profiles and working rules across an extension version upgrade", async () => {
   const upgradeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "header-override-upgrade-e2e-"));
   const extensionPath = path.join(upgradeRoot, "extension");
