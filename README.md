@@ -37,8 +37,6 @@ The public website is maintained in a separate repository so this repository can
 
 The generated `extension/build/` directory contains browser-compatible bundles and is intentionally ignored by Git. Edit files under `extension/src/`, then rebuild.
 
-For Firefox, build the browser-specific package with `npm run package:extension:firefox`, extract the generated ZIP, then select its `manifest.json` from `about:debugging` → **This Firefox** → **Load Temporary Add-on**. Grant access to all websites when Firefox prompts; the popup reports **Website access required** if that permission is missing or revoked.
-
 ## Use
 
 Open the extension popup, choose a tab, and add a rule:

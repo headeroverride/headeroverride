@@ -11,7 +11,12 @@ import {
   ruleKind
 } from "../shared/model.js";
 import { createProfilesExport, mergeProfiles, readProfilesJson } from "./profile-transfer.js";
-import { hasRequiredHostAccess, requestRequiredHostAccess } from "../platform/permissions.js";
+import {
+  getHostAccessState,
+  HOST_ACCESS_ALL,
+  HOST_ACCESS_NONE,
+  requestRequiredHostAccess
+} from "../platform/permissions.js";
 import { requestRuleSync } from "../platform/runtime.js";
 import { readStorage, writeStorage } from "../platform/storage.js";
 import { createQueuedStorageWriter, saveSelectedTab } from "./persistence.js";
@@ -31,7 +36,9 @@ const profileMenuButton = document.querySelector("#profile-menu-button");
 const profileMenu = document.querySelector("#profile-menu");
 const profileCurrent = document.querySelector("#profile-current");
 const globalRulesToggle = document.querySelector("#global-rules-toggle");
-const hostAccessBanner = document.querySelector("#host-access-banner");
+const hostAccessControl = document.querySelector("#host-access-control");
+const hostAccessTrigger = document.querySelector("#host-access-trigger");
+const hostAccessPopover = document.querySelector("#host-access-popover");
 const hostAccessMessage = document.querySelector("#host-access-message");
 const grantHostAccessButton = document.querySelector("#grant-host-access");
 const tabs = Array.from(document.querySelectorAll(".tab"));
@@ -51,7 +58,7 @@ let viewedProfileId = activeProfileId;
 let rules = [];
 let rulesEnabled = true;
 let masterToggleSnapshot = null;
-let hostAccessGranted = true;
+let hostAccessState = HOST_ACCESS_ALL;
 let hostAccessError = "";
 const expandedCookieDetails = new Set();
 const ruleListView = createRuleListView({
@@ -107,6 +114,10 @@ profileMenuButton.addEventListener("click", () => {
   toggleProfileMenu(profileMenu.hidden);
 });
 
+hostAccessTrigger.addEventListener("click", () => {
+  toggleHostAccessPopover(hostAccessPopover.hidden);
+});
+
 globalRulesToggle.addEventListener("change", () => {
   rulesEnabled = globalRulesToggle.checked;
   if (rulesEnabled) {
@@ -127,21 +138,22 @@ grantHostAccessButton.addEventListener("click", async () => {
   hostAccessError = "";
 
   try {
-    hostAccessGranted = await requestRequiredHostAccess();
+    const hostAccessGranted = await requestRequiredHostAccess();
     if (hostAccessGranted) {
+      hostAccessState = HOST_ACCESS_ALL;
       await requestRuleSync();
     } else {
+      hostAccessState = await getHostAccessState();
       hostAccessError = "Access was not granted. Enable website access in the browser's extension settings.";
     }
   } catch (error) {
     console.error("Could not request website access.", error);
-    hostAccessGranted = false;
+    hostAccessState = HOST_ACCESS_NONE;
     hostAccessError = "Open the browser's extension settings and allow access to all websites.";
   } finally {
     grantHostAccessButton.disabled = false;
-    grantHostAccessButton.textContent = "Grant access";
+    grantHostAccessButton.textContent = "Grant all websites";
     renderHostAccess();
-    renderCurrentProfile();
   }
 });
 
@@ -312,6 +324,10 @@ document.addEventListener("pointerdown", (event) => {
   if (!event.target.closest(".profile-menu")) {
     toggleProfileMenu(false);
   }
+
+  if (!event.target.closest(".host-access-control")) {
+    toggleHostAccessPopover(false);
+  }
 });
 
 rulesContainer.addEventListener("click", (event) => {
@@ -338,6 +354,7 @@ document.addEventListener("keydown", (event) => {
     pendingDeleteProfileId = "";
     ruleListView.closeHelp();
     toggleProfileMenu(false);
+    toggleHostAccessPopover(false);
     renderProfileMenu();
   }
 });
@@ -356,24 +373,38 @@ function render() {
 
 async function refreshHostAccess(shouldRender = true) {
   try {
-    hostAccessGranted = await hasRequiredHostAccess();
+    hostAccessState = await getHostAccessState();
     hostAccessError = "";
   } catch (error) {
     console.error("Could not check website access.", error);
-    hostAccessGranted = false;
+    hostAccessState = HOST_ACCESS_NONE;
     hostAccessError = "Could not verify website access. Check the browser's extension settings.";
   }
 
   if (shouldRender) {
     renderHostAccess();
-    renderCurrentProfile();
   }
 }
 
 function renderHostAccess() {
-  hostAccessBanner.hidden = hostAccessGranted;
+  const shouldShow = hostAccessState === HOST_ACCESS_NONE && hasActiveRules();
+  hostAccessControl.hidden = !shouldShow;
   hostAccessMessage.textContent = hostAccessError
-    || "Allow access so the browser can apply your override rules.";
+    || "Allow specific sites in browser settings or grant all websites.";
+
+  if (!shouldShow) {
+    toggleHostAccessPopover(false);
+  }
+}
+
+function hasActiveRules() {
+  const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
+  return rulesEnabled && Boolean(activeProfile?.rules.some((rule) => rule.enabled));
+}
+
+function toggleHostAccessPopover(shouldOpen) {
+  hostAccessPopover.hidden = !shouldOpen;
+  hostAccessTrigger.setAttribute("aria-expanded", String(shouldOpen));
 }
 
 function syncRulesToMasterState() {
@@ -410,15 +441,13 @@ function renderCurrentProfile() {
   if (isActive) {
     const badge = document.createElement("span");
     badge.className = "profile-current-badge";
-    badge.classList.toggle("is-paused", !rulesEnabled || !hostAccessGranted);
-    badge.textContent = !hostAccessGranted ? "No access" : rulesEnabled ? "Active" : "Inactive";
+    badge.classList.toggle("is-paused", !rulesEnabled);
+    badge.textContent = rulesEnabled ? "Active" : "Inactive";
     profileCurrent.append(badge);
   }
 
   profileCurrent.title = isActive
-    ? !hostAccessGranted
-      ? `${viewedProfile.name} needs website access`
-      : rulesEnabled ? `${viewedProfile.name} is active` : `${viewedProfile.name} is paused`
+    ? rulesEnabled ? `${viewedProfile.name} is active` : `${viewedProfile.name} is paused`
     : viewedProfile.name;
 }
 
@@ -704,6 +733,7 @@ function updateRule(id, patch) {
     renderGlobalRulesToggle();
     renderCurrentProfile();
   }
+  renderHostAccess();
   ruleListView.updateCounts(rules, activeTab);
   saveNow();
 }

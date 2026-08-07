@@ -1448,9 +1448,9 @@ test("grants website access from the popup and requests rule synchronization", a
         syncMessages: [] as unknown[]
       };
 
-      Object.defineProperty(chrome.permissions, "contains", {
+      Object.defineProperty(chrome.permissions, "getAll", {
         configurable: true,
-        value: async () => state.granted
+        value: async () => ({ origins: state.granted ? ["<all_urls>"] : [] })
       });
       Object.defineProperty(chrome.permissions, "request", {
         configurable: true,
@@ -1470,10 +1470,19 @@ test("grants website access from the popup and requests rule synchronization", a
     });
     await extension.extensionPage.reload();
 
-    await expect(extension.extensionPage.locator("#host-access-banner")).toBeVisible();
-    await extension.extensionPage.getByRole("button", { name: "Grant access" }).click();
+    const accessControl = extension.extensionPage.locator("#host-access-control");
+    const accessTrigger = extension.extensionPage.getByRole("button", { name: "No persistent website access" });
 
-    await expect(extension.extensionPage.locator("#host-access-banner")).toBeHidden();
+    await expect(accessControl).toBeVisible();
+    await expect(extension.extensionPage.locator("#host-access-popover")).toBeHidden();
+    await accessTrigger.click();
+    await expect(extension.extensionPage.getByText("Website access needed", { exact: true })).toBeVisible();
+    await expect(extension.extensionPage.getByText(
+      "Allow specific sites in browser settings or grant all websites."
+    )).toBeVisible();
+    await extension.extensionPage.getByRole("button", { name: "Grant all websites" }).click();
+
+    await expect(accessControl).toBeHidden();
     await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("Active");
     const state = await extension.extensionPage.evaluate(() =>
       (globalThis as typeof globalThis & {
@@ -1490,7 +1499,7 @@ test("grants website access from the popup and requests rule synchronization", a
   }
 });
 
-test("reports missing website access and stops applying rules", async () => {
+test("keeps rules registered when real-browser website access is unavailable", async () => {
   const deniedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "header-override-no-access-e2e-"));
   const extensionPath = path.join(deniedRoot, "extension");
   const userDataDir = path.join(deniedRoot, "browser-profile");
@@ -1507,24 +1516,70 @@ test("reports missing website access and stops applying rules", async () => {
       await seedRules(extension.extensionPage, [requestHeaderRule()]);
       await extension.extensionPage.reload();
 
-      await expect(extension.extensionPage.locator("#host-access-banner")).toBeVisible();
-      await expect(extension.extensionPage.getByText("Website access required")).toBeVisible();
-      await expect(extension.extensionPage.getByRole("button", { name: "Grant access" })).toBeVisible();
-      await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("No access");
+      await expect(extension.extensionPage.locator("#host-access-control")).toBeVisible();
+      await extension.extensionPage.getByRole("button", { name: "No persistent website access" }).click();
+      await expect(extension.extensionPage.getByText("Website access needed", { exact: true })).toBeVisible();
+      await expect(extension.extensionPage.getByRole("button", { name: "Grant all websites" })).toBeVisible();
+      await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("Active");
       await expect.poll(async () => {
         const syncStatus = await readSyncStatus(extension.extensionPage);
         return `${syncStatus.level}:${syncStatus.message}:${syncStatus.appliedCount}`;
-      }).toBe("error:Website access is required before override rules can be applied.:0");
+      }).toBe("ok::1");
       await expect.poll(async () => extension.extensionPage.evaluate(() => chrome.action.getBadgeText({})))
-        .toBe("!");
+        .toBe("1");
       await expect.poll(async () => extension.extensionPage.evaluate(async () =>
         (await chrome.declarativeNetRequest.getDynamicRules()).length
-      )).toBe(0);
+      )).toBe(1);
     } finally {
       await extension.close();
     }
   } finally {
     await fs.rm(deniedRoot, { recursive: true, force: true });
+  }
+});
+
+test("hides the no-access indicator when no rule is active", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await extension.extensionPage.addInitScript(() => {
+      Object.defineProperty(chrome.permissions, "getAll", {
+        configurable: true,
+        value: async () => ({ origins: [] })
+      });
+    });
+    await extension.extensionPage.reload();
+
+    const accessControl = extension.extensionPage.locator("#host-access-control");
+    await expect(accessControl).toBeVisible();
+
+    const ruleToggle = extension.extensionPage.locator(".request-header-rule .enabled");
+    await ruleToggle.uncheck();
+    await expect(accessControl).toBeHidden();
+
+    await ruleToggle.check();
+    await expect(accessControl).toBeVisible();
+  } finally {
+    await extension.close();
+  }
+});
+
+test("treats specific-site access as an intentional configuration", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await extension.extensionPage.addInitScript(() => {
+      Object.defineProperty(chrome.permissions, "getAll", {
+        configurable: true,
+        value: async () => ({ origins: ["https://example.com/*"] })
+      });
+    });
+    await extension.extensionPage.reload();
+
+    await expect(extension.extensionPage.locator("#host-access-control")).toBeHidden();
+    await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("Active");
+  } finally {
+    await extension.close();
   }
 });
 
