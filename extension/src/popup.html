@@ -15,6 +15,31 @@
           <label class="master-toggle" title="Enable or pause all rules">
             <input id="global-rules-toggle" type="checkbox" aria-label="All rules enabled" checked>
           </label>
+          <div id="host-access-control" class="host-access-control" hidden>
+            <button
+              id="host-access-trigger"
+              class="host-access-trigger"
+              type="button"
+              title="No persistent website access"
+              aria-label="No persistent website access"
+              aria-haspopup="dialog"
+              aria-controls="host-access-popover"
+              aria-expanded="false"
+            >
+              <span aria-hidden="true">!</span>
+            </button>
+            <div
+              id="host-access-popover"
+              class="host-access-popover"
+              role="dialog"
+              aria-label="Website access"
+              hidden
+            >
+              <strong>Website access needed</strong>
+              <p id="host-access-message">Allow specific sites in browser settings or grant all websites.</p>
+              <button id="grant-host-access" type="button">Grant all websites</button>
+            </div>
+          </div>
         </div>
         <div class="profile-menu">
           <span id="profile-current" class="profile-current"></span>
@@ -189,7 +214,6 @@
       </article>
     </template>
 
-    <script src="config.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

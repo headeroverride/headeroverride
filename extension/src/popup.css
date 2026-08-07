@@ -24,6 +24,10 @@
   --danger-fill: #b42318;
   --danger-soft: rgba(180, 35, 24, 0.08);
   --danger-focus: rgba(180, 35, 24, 0.12);
+  --warning: #b54708;
+  --warning-fill: #b54708;
+  --warning-soft: rgba(181, 71, 8, 0.09);
+  --warning-focus: rgba(181, 71, 8, 0.16);
   --toggle-border: #98a2b3;
   --toggle-bg: #d0d5dd;
   --toggle-knob: #ffffff;
@@ -64,6 +68,10 @@
     --danger-fill: #b42318;
     --danger-soft: rgba(255, 155, 145, 0.12);
     --danger-focus: rgba(255, 155, 145, 0.2);
+    --warning: #fdb022;
+    --warning-fill: #b54708;
+    --warning-soft: rgba(253, 176, 34, 0.12);
+    --warning-focus: rgba(253, 176, 34, 0.2);
     --toggle-border: #667281;
     --toggle-bg: #46515f;
     --toggle-knob: #f5f7fa;
@@ -735,6 +743,95 @@ h1 {
   display: grid;
   gap: 12px;
   align-content: start;
+}
+
+.host-access-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.host-access-control[hidden],
+.host-access-popover[hidden] {
+  display: none;
+}
+
+.host-access-trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--warning);
+  border-radius: 50%;
+  color: var(--warning);
+  background: var(--warning-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.host-access-trigger:hover,
+.host-access-trigger:focus-visible,
+.host-access-trigger[aria-expanded="true"] {
+  color: var(--on-accent);
+  background: var(--warning-fill);
+  outline: none;
+}
+
+.host-access-trigger:focus-visible {
+  box-shadow: 0 0 0 3px var(--warning-focus);
+}
+
+.host-access-popover {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 7px);
+  left: -8px;
+  display: grid;
+  gap: 7px;
+  width: 250px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.host-access-popover strong {
+  color: var(--warning);
+  font-size: 12px;
+}
+
+.host-access-popover p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.host-access-popover button {
+  justify-self: start;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--on-accent);
+  background: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.host-access-popover button:hover,
+.host-access-popover button:focus-visible {
+  background: var(--accent-dark);
+  outline: none;
+}
+
+.host-access-popover button:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .rule-section {

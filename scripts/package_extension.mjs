@@ -26,13 +26,14 @@ for (const target of targets) {
   const outputPath = path.join(distDir, `header-override-${packageJson.version}-${target}.zip`);
 
   try {
+    await fs.rm(outputPath, { force: true });
     await fs.cp(path.join(extensionDir, "icons"), path.join(stagingDir, "icons"), { recursive: true });
-    await fs.cp(path.join(extensionDir, "src"), path.join(stagingDir, "src"), { recursive: true });
+    await fs.cp(path.join(extensionDir, "build"), path.join(stagingDir, "build"), { recursive: true });
     await fs.copyFile(path.join(extensionDir, `manifest.${target}.json`), path.join(stagingDir, "manifest.json"));
 
     const result = spawnSync(
       "zip",
-      ["-qr", outputPath, "manifest.json", "icons", "src", "-x", "*.DS_Store", "-x", "__MACOSX/*"],
+      ["-qr", outputPath, "manifest.json", "icons", "build", "-x", "*.DS_Store", "-x", "__MACOSX/*"],
       { cwd: stagingDir, stdio: "inherit" }
     );
 

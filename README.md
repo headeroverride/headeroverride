@@ -12,8 +12,13 @@ Header Override is a small browser extension for overriding request headers, res
 ## Repository layout
 
 ```text
-extension/      Browser extension source and manifest
-tests/          Playwright end-to-end tests
+extension/      Browser extension manifests, icons, and modular source
+  src/shared/   Pure rules, profiles, storage schema, and DNR compilation
+  src/platform/ Browser API adapters
+  src/background/ Background synchronization and badge entry point
+  src/popup/    Popup state, persistence, profile transfer, and views
+tests/unit/     Fast tests for pure model and state modules
+tests/e2e/      Playwright browser-extension tests
 assets/         Store and product assets
 docs/           Publishing notes and privacy policy source
 scripts/        Release packaging and screenshot helpers
@@ -24,10 +29,13 @@ The public website is maintained in a separate repository so this repository can
 
 ## Load the extension for local testing
 
-1. Open your browser's extensions page.
-2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select the `extension/` folder.
+1. Run `npm run build`.
+2. Open your browser's extensions page.
+3. Enable **Developer mode**.
+4. Click **Load unpacked**.
+5. Select the `extension/` folder.
+
+The generated `extension/build/` directory contains browser-compatible bundles and is intentionally ignored by Git. Edit files under `extension/src/`, then rebuild.
 
 ## Use
 
@@ -53,6 +61,12 @@ Run the end-to-end test suite:
 
 ```sh
 npm run test:e2e
+```
+
+Run the unit and end-to-end suites together:
+
+```sh
+npm test
 ```
 
 Run tests in headed mode:
