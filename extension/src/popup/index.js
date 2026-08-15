@@ -19,8 +19,14 @@ import {
 } from "../platform/permissions.js";
 import { requestRuleSync } from "../platform/runtime.js";
 import { readStorage, writeStorage } from "../platform/storage.js";
-import { createQueuedStorageWriter, saveSelectedTab } from "./persistence.js";
+import { createQueuedStorageWriter } from "./persistence.js";
 import { createRuleListView } from "./views/rule-list-view.js";
+import {
+  cycleSectionSort,
+  readSortingByProfile,
+  removeProfileSorting,
+  setProfileSectionSort
+} from "./sorting.js";
 import {
   captureRuleStates,
   createRule,
@@ -51,6 +57,7 @@ importProfilesInput.hidden = true;
 document.body.append(importProfilesInput);
 
 let activeTab = "headers";
+let sortingByProfile = {};
 let storageData = createStorageData([]);
 let profiles = storageData.profiles;
 let activeProfileId = storageData.activeProfileId;
@@ -70,7 +77,8 @@ const ruleListView = createRuleListView({
   countNodes,
   expandedCookieDetails,
   onUpdateRule: updateRule,
-  onDeleteRule: deleteRule
+  onDeleteRule: deleteRule,
+  onChangeSort: changeSectionSort
 });
 let isAddingProfile = false;
 let profileMenuMode = "list";
@@ -81,6 +89,11 @@ const saveNow = createQueuedStorageWriter(STORAGE_KEY, () => {
   updateViewedProfileRules(rules);
   return toStorageData();
 });
+const savePopupNow = createQueuedStorageWriter(
+  POPUP_STATE_KEY,
+  toPopupState,
+  "Failed to save popup state."
+);
 
 init();
 
@@ -94,6 +107,10 @@ async function init() {
   profiles = storageData.profiles;
   activeProfileId = storageData.activeProfileId;
   viewedProfileId = activeProfileId;
+  sortingByProfile = readSortingByProfile(
+    stored[POPUP_STATE_KEY]?.sortingByProfile,
+    profiles.map((profile) => profile.id)
+  );
   rulesEnabled = storageData.rulesEnabled;
   masterToggleSnapshot = storageData.masterToggleSnapshot;
   if (!rulesEnabled) {
@@ -104,8 +121,16 @@ async function init() {
   }
   rules = getViewedProfile().rules;
   const normalizedData = toStorageData();
+  const normalizedPopupState = toPopupState();
+  const normalizedValues = {};
   if (!isSameStorageData(stored[STORAGE_KEY], normalizedData)) {
-    await writeStorage({ [STORAGE_KEY]: normalizedData });
+    normalizedValues[STORAGE_KEY] = normalizedData;
+  }
+  if (!isSameStorageData(stored[POPUP_STATE_KEY], normalizedPopupState)) {
+    normalizedValues[POPUP_STATE_KEY] = normalizedPopupState;
+  }
+  if (Object.keys(normalizedValues).length > 0) {
+    await writeStorage(normalizedValues);
   }
   render();
 }
@@ -312,7 +337,7 @@ for (const tab of tabs) {
     activeTab = readActiveTab(tab.dataset.tab);
     ruleListView.closeHelp();
     render();
-    saveSelectedTab(activeTab);
+    savePopupNow();
   });
 }
 
@@ -365,7 +390,7 @@ function render() {
   renderGlobalRulesToggle();
   renderCurrentProfile();
   renderProfileMenu();
-  ruleListView.render(rules, activeTab);
+  ruleListView.render(rules, activeTab, getViewedProfileSorting());
   if (rulesChanged) {
     saveNow();
   }
@@ -912,12 +937,14 @@ function deleteProfile(profileId) {
   }
 
   rules = getViewedProfile().rules;
+  sortingByProfile = removeProfileSorting(sortingByProfile, profileId);
   activeTab = "headers";
   isAddingProfile = false;
   pendingDeleteProfileId = "";
   expandedCookieDetails.clear();
   render();
   saveNow();
+  savePopupNow();
 }
 
 
@@ -948,6 +975,30 @@ function toStorageData() {
       rules: profile.rules.map(readRule)
     }))
   };
+}
+
+function toPopupState() {
+  return {
+    activeTab,
+    sortingByProfile
+  };
+}
+
+function getViewedProfileSorting() {
+  return sortingByProfile[viewedProfileId] || {};
+}
+
+function changeSectionSort(kind, field) {
+  const currentSort = getViewedProfileSorting()[kind];
+  const nextSort = cycleSectionSort(currentSort, field);
+  sortingByProfile = setProfileSectionSort(
+    sortingByProfile,
+    viewedProfileId,
+    kind,
+    nextSort
+  );
+  ruleListView.render(rules, activeTab, getViewedProfileSorting());
+  savePopupNow();
 }
 
 function isSameStorageData(left, right) {

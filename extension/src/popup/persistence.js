@@ -1,7 +1,6 @@
-import { POPUP_STATE_KEY } from "../shared/constants.js";
 import { writeStorage } from "../platform/storage.js";
 
-export function createQueuedStorageWriter(storageKey, getSnapshot) {
+export function createQueuedStorageWriter(storageKey, getSnapshot, errorMessage = "Failed to save override rules.") {
   let inFlight = false;
   let pending = false;
 
@@ -14,7 +13,7 @@ export function createQueuedStorageWriter(storageKey, getSnapshot) {
         await writeStorage({ [storageKey]: getSnapshot() });
       }
     } catch (error) {
-      console.error("Failed to save override rules.", error);
+      console.error(errorMessage, error);
     } finally {
       inFlight = false;
       if (pending) {
@@ -29,12 +28,4 @@ export function createQueuedStorageWriter(storageKey, getSnapshot) {
       persist();
     }
   };
-}
-
-export async function saveSelectedTab(activeTab) {
-  try {
-    await writeStorage({ [POPUP_STATE_KEY]: { activeTab } });
-  } catch (error) {
-    console.error("Failed to save popup state.", error);
-  }
 }

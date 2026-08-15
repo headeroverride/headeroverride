@@ -2,7 +2,7 @@
   "name": "header-override",
   "private": true,
   "type": "module",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "scripts": {
     "build": "node scripts/build_extension.mjs",
     "test": "npm run test:unit && npm run test:e2e",

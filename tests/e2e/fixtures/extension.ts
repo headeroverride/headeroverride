@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 const STORAGE_KEY = "headerOverrideRules";
+const POPUP_STATE_KEY = "headerOverridePopupState";
 const SYNC_STATUS_KEY = "headerOverrideSyncStatus";
 const DEFAULT_PROFILE_ID = "default";
 
@@ -138,6 +139,25 @@ export async function readStoredRules(extensionPage: Page) {
       return stored[storageKey];
     },
     STORAGE_KEY
+  );
+}
+
+export async function seedPopupState(extensionPage: Page, state: unknown) {
+  await extensionPage.evaluate(
+    async ({ popupStateKey, state }) => {
+      await chrome.storage.local.set({ [popupStateKey]: state });
+    },
+    { popupStateKey: POPUP_STATE_KEY, state }
+  );
+}
+
+export async function readPopupState(extensionPage: Page) {
+  return extensionPage.evaluate(
+    async (popupStateKey) => {
+      const stored = await chrome.storage.local.get(popupStateKey);
+      return stored[popupStateKey];
+    },
+    POPUP_STATE_KEY
   );
 }
 
