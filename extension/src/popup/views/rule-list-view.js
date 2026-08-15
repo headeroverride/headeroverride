@@ -4,6 +4,7 @@ import {
   validCookieName,
   validHeaderName
 } from "../../shared/model.js";
+import { sortRulesForSection } from "../sorting.js";
 
 export function createRuleListView({
   rulesContainer,
@@ -14,12 +15,18 @@ export function createRuleListView({
   countNodes,
   expandedCookieDetails,
   onUpdateRule,
-  onDeleteRule
+  onDeleteRule,
+  onChangeSort
 }) {
   let rules = [];
   let activeTab = "headers";
+  let sortByKind = {};
+  let suppressedSortPreview = "";
+  let suppressedSortPreviewFromPointer = false;
+  let preserveSuppressedPreview = false;
   const updateRule = onUpdateRule;
   const deleteRule = onDeleteRule;
+  const changeSort = onChangeSort;
 
   function updateTabs() {
     for (const tab of tabs) {
@@ -95,7 +102,11 @@ export function createRuleListView({
     header.append(titleGroup, addButton);
     section.append(header, renderSectionHead(kind));
   
-    const sectionRules = rules.filter((rule) => ruleKind(rule) === kind);
+    const sectionRules = sortRulesForSection(
+      rules.filter((rule) => ruleKind(rule) === kind),
+      kind,
+      sortByKind[kind]
+    );
     const list = document.createElement("div");
     list.className = "rule-section-list";
   
@@ -173,11 +184,11 @@ export function createRuleListView({
     const head = document.createElement("div");
     head.className = "rules-head header-head";
   
-    appendHeadText(head, "On");
-    appendHeadText(head, isCookieRule(kind) ? "Name" : "Header");
-    appendHeadText(head, "Value");
-    appendUrlHelp(head, kind);
-    appendHeadText(head, "Comment");
+    appendSortHead(head, kind, "enabled", "On");
+    appendSortHead(head, kind, isCookieRule(kind) ? "name" : "header", isCookieRule(kind) ? "Name" : "Header");
+    appendSortHead(head, kind, "value", "Value");
+    appendUrlSortHead(head, kind);
+    appendSortHead(head, kind, "comment", "Comment");
     appendHeadText(head, "");
   
     return head;
@@ -205,8 +216,14 @@ export function createRuleListView({
     updateCommentStyle(comment);
     updateHeaderOperation(node, kind, rule.operation);
   
-    enabled?.addEventListener("change", () => updateRule(rule.id, { enabled: enabled.checked }));
-    bindEnabledColumnToggle(row, enabled, () => updateRule(rule.id, { enabled: enabled.checked }));
+    enabled?.addEventListener("change", () => {
+      updateRule(rule.id, { enabled: enabled.checked });
+      refreshSortedSection(kind, "enabled");
+    });
+    bindEnabledColumnToggle(row, enabled, () => {
+      updateRule(rule.id, { enabled: enabled.checked });
+      refreshSortedSection(kind, "enabled");
+    });
     header?.addEventListener("input", () => updateRule(rule.id, { header: header.value }));
     value?.addEventListener("input", () => updateRule(rule.id, { value: value.value }));
     operationToggle?.addEventListener("click", () => {
@@ -219,6 +236,10 @@ export function createRuleListView({
       updateCommentStyle(comment);
       updateRule(rule.id, { comment: comment.value });
     });
+    bindSortCommit(header, kind, "header");
+    bindSortCommit(value, kind, "value");
+    bindSortCommit(urlFilter, kind, "urlFilter");
+    bindSortCommit(comment, kind, "comment");
     deleteButton?.addEventListener("click", () => deleteRule(rule.id));
   
     return node;
@@ -263,8 +284,14 @@ export function createRuleListView({
     updateCookieOperation(node, kind, rule.operation);
     updateCommentStyle(comment);
   
-    enabled?.addEventListener("change", () => updateRule(rule.id, { enabled: enabled.checked }));
-    bindEnabledColumnToggle(row, enabled, () => updateRule(rule.id, { enabled: enabled.checked }));
+    enabled?.addEventListener("change", () => {
+      updateRule(rule.id, { enabled: enabled.checked });
+      refreshSortedSection(kind, "enabled");
+    });
+    bindEnabledColumnToggle(row, enabled, () => {
+      updateRule(rule.id, { enabled: enabled.checked });
+      refreshSortedSection(kind, "enabled");
+    });
     name?.addEventListener("input", () => updateRule(rule.id, { name: name.value }));
     value?.addEventListener("input", () => updateRule(rule.id, { value: value.value }));
     operationToggle?.addEventListener("click", () => {
@@ -293,6 +320,11 @@ export function createRuleListView({
       updateRule(rule.id, { session: session.value === "true" });
     });
     maxAge?.addEventListener("input", () => updateRule(rule.id, { maxAge: maxAge.value }));
+    bindSortCommit(name, kind, "name");
+    bindSortCommit(value, kind, "value");
+    bindSortCommit(urlFilterColumn, kind, "urlFilter");
+    bindSortCommit(requestUrlFilter, kind, "urlFilter");
+    bindSortCommit(comment, kind, "comment");
     for (const toggle of detailToggles) {
       toggle.addEventListener("click", () => {
         expandedCookieDetails.add(rule.id);
@@ -473,12 +505,19 @@ export function createRuleListView({
     target.append(span);
   }
   
-  function appendUrlHelp(target, kind) {
+  function appendSortHead(target, kind, field, label) {
+    const node = document.createElement("span");
+    configureSortHead(node, kind, field, label);
+    target.append(node);
+  }
+
+  function appendUrlSortHead(target, kind) {
     const node = urlHelpTemplate.content.firstElementChild.cloneNode(true);
     const button = node.querySelector(".help-tip");
     const panel = node.querySelector(".help-panel");
     const id = `url-filter-help-${kind}`;
   
+    configureSortHead(node, kind, "urlFilter", "URL");
     panel.id = id;
     button.setAttribute("aria-controls", id);
     button.addEventListener("click", () => {
@@ -489,6 +528,71 @@ export function createRuleListView({
     });
   
     target.append(node);
+  }
+
+  function configureSortHead(node, kind, field, label) {
+    const currentSort = sortByKind[kind];
+    const isActive = currentSort?.field === field;
+    const direction = isActive ? currentSort.direction : null;
+    const nextDirection = direction === "desc" ? "ascending" : direction === "asc" ? "unsorted" : "descending";
+    const currentDirection = direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "unsorted";
+    const previewKey = `${kind}:${field}`;
+    const isPreviewSuppressed = suppressedSortPreview === previewKey;
+    const button = document.createElement("button");
+    const labelNode = document.createElement("span");
+    const indicator = document.createElement("span");
+    const description = `Sort by ${label}; currently ${currentDirection}. Activate for ${nextDirection}.`;
+
+    node.classList.add("sort-heading", `sort-field-${field}`);
+    node.classList.toggle("suppress-sort-preview", isPreviewSuppressed);
+    node.setAttribute("role", "columnheader");
+    node.setAttribute("aria-sort", currentDirection === "unsorted" ? "none" : currentDirection);
+    button.className = "sort-button";
+    button.type = "button";
+    button.setAttribute("aria-label", description);
+    button.addEventListener("click", (event) => {
+      const willClearSort = direction === "asc";
+      suppressedSortPreview = willClearSort ? previewKey : "";
+      suppressedSortPreviewFromPointer = willClearSort && event.detail > 0;
+      preserveSuppressedPreview = willClearSort;
+      changeSort(kind, field);
+    });
+    labelNode.textContent = label;
+    indicator.className = "sort-indicator";
+    indicator.setAttribute("aria-hidden", "true");
+    indicator.textContent = direction === "asc" ? "↑" : "↓";
+    button.append(labelNode, indicator);
+    node.prepend(button);
+
+    if (isPreviewSuppressed) {
+      if (suppressedSortPreviewFromPointer) {
+        requestAnimationFrame(() => {
+          if (node.isConnected) {
+            document.addEventListener("pointermove", clearSuppressedPreview, { once: true });
+          }
+        });
+      } else {
+        button.addEventListener("blur", clearSuppressedPreview, { once: true });
+      }
+    }
+
+    function clearSuppressedPreview() {
+      if (suppressedSortPreview === previewKey) {
+        suppressedSortPreview = "";
+        suppressedSortPreviewFromPointer = false;
+      }
+      node.classList.remove("suppress-sort-preview");
+    }
+  }
+
+  function bindSortCommit(control, kind, field) {
+    control?.addEventListener("change", () => refreshSortedSection(kind, field));
+  }
+
+  function refreshSortedSection(kind, field) {
+    if (sortByKind[kind]?.field === field) {
+      renderRules();
+    }
   }
   
   function getResponseCookieSummary(node) {
@@ -598,9 +702,16 @@ export function createRuleListView({
   }
 
   return {
-    render(nextRules, nextActiveTab) {
+    render(nextRules, nextActiveTab, nextSortByKind = {}) {
+      if (preserveSuppressedPreview) {
+        preserveSuppressedPreview = false;
+      } else {
+        suppressedSortPreview = "";
+        suppressedSortPreviewFromPointer = false;
+      }
       rules = nextRules;
       activeTab = nextActiveTab;
+      sortByKind = nextSortByKind;
       updateTabs();
       renderRules();
     },

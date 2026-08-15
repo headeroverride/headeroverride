@@ -930,6 +930,46 @@ test("does not apply disabled response deletion rules", async () => {
   }
 });
 
+test("shows every rule-list column heading for headers and cookies", async () => {
+  const extension = await launchExtension();
+
+  try {
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule(),
+      responseHeaderRule(),
+      requestCookieRule(),
+      responseCookieRule()
+    ]);
+    await extension.extensionPage.reload();
+
+    for (const sectionName of ["Request", "Response"] as const) {
+      const section = extension.extensionPage.locator(".rule-section").filter({
+        has: extension.extensionPage.getByRole("heading", { name: sectionName, exact: true })
+      });
+      const headingRow = section.locator(".rules-head");
+
+      for (const label of ["On", "Header", "Value", "URL", "Comment"]) {
+        await expect(headingRow.getByText(label, { exact: true })).toBeVisible();
+      }
+    }
+
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+
+    for (const sectionName of ["Request", "Response"] as const) {
+      const section = extension.extensionPage.locator(".rule-section").filter({
+        has: extension.extensionPage.getByRole("heading", { name: sectionName, exact: true })
+      });
+      const headingRow = section.locator(".rules-head");
+
+      for (const label of ["On", "Name", "Value", "URL", "Comment"]) {
+        await expect(headingRow.getByText(label, { exact: true })).toBeVisible();
+      }
+    }
+  } finally {
+    await extension.close();
+  }
+});
+
 test("applies all configured header and cookie rules together", async () => {
   const extension = await launchExtension();
 

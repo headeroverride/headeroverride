@@ -957,6 +957,75 @@ h1 {
   transform: translateX(-2px);
 }
 
+.sort-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sort-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-transform: inherit;
+}
+
+.sort-button:hover,
+.sort-button:focus-visible {
+  color: var(--accent-dark);
+  outline: none;
+}
+
+.sort-button:focus-visible {
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px var(--accent-focus-strong);
+}
+
+.sort-field-header .sort-button,
+.sort-field-name .sort-button {
+  transform: translateX(2px);
+}
+
+.sort-indicator {
+  position: absolute;
+  left: 100%;
+  display: inline-block;
+  width: 7px;
+  color: var(--accent-dark);
+  font-size: 9px;
+  line-height: 1;
+  opacity: 1;
+  text-align: center;
+  transition: opacity 0.12s ease;
+}
+
+.url-heading.sort-heading .help-tip {
+  margin-left: 6px;
+}
+
+.sort-heading[aria-sort="none"] .sort-indicator {
+  opacity: 0;
+}
+
+.sort-heading[aria-sort="none"] .sort-button:hover .sort-indicator,
+.sort-heading[aria-sort="none"] .sort-button:focus-visible .sort-indicator {
+  opacity: 1;
+}
+
+.sort-heading[aria-sort="none"].suppress-sort-preview .sort-button .sort-indicator {
+  opacity: 0;
+}
+
 .url-heading {
   position: relative;
   display: inline-flex;
