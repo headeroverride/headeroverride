@@ -841,6 +841,11 @@ h1 {
   min-width: 0;
 }
 
+.rule-section + .rule-section {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .rule-section-header {
   display: grid;
   grid-template-columns: 24px minmax(140px, 1fr) minmax(100px, 0.72fr) minmax(155px, 1.04fr) minmax(135px, 0.95fr) 30px;

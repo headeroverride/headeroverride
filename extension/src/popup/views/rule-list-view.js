@@ -6,6 +6,11 @@ import {
 } from "../../shared/model.js";
 import { sortRulesForSection } from "../sorting.js";
 
+const TAB_LABELS = {
+  headers: "Headers",
+  cookies: "Cookies"
+};
+
 export function createRuleListView({
   rulesContainer,
   rulesShell,
@@ -30,8 +35,8 @@ export function createRuleListView({
   const deleteRule = onDeleteRule;
   const changeSort = onChangeSort;
 
-  rulesShell.addEventListener("scroll", updateStickySectionAddButton);
-  window.addEventListener("resize", updateStickySectionAddButton);
+  rulesShell.addEventListener("scroll", updateScrolledSectionControls);
+  window.addEventListener("resize", updateScrolledSectionControls);
 
   function updateTabs() {
     for (const tab of tabs) {
@@ -121,6 +126,35 @@ export function createRuleListView({
   
     section.append(list);
     return { node: section, ruleCount: sectionRules.length };
+  }
+
+  function updateScrolledSectionControls() {
+    updateDynamicTabLabels();
+    updateStickySectionAddButton();
+  }
+
+  function updateDynamicTabLabels() {
+    const scrollViewportTop = rulesShell.getBoundingClientRect().top;
+    let sectionLabel = "";
+
+    for (const title of rulesContainer.querySelectorAll(".rule-section h2")) {
+      if (title.getBoundingClientRect().bottom > scrollViewportTop) {
+        break;
+      }
+      sectionLabel = title.textContent?.trim() || "";
+    }
+
+    for (const tab of tabs) {
+      const label = tab.querySelector(".tab-label");
+      const baseLabel = TAB_LABELS[tab.dataset.tab];
+      if (!label || !baseLabel) {
+        continue;
+      }
+
+      label.textContent = tab.dataset.tab === activeTab && sectionLabel
+        ? `${sectionLabel} ${baseLabel}`
+        : baseLabel;
+    }
   }
 
   function updateStickySectionAddButton() {
@@ -781,12 +815,13 @@ export function createRuleListView({
       sortByKind = nextSortByKind;
       updateTabs();
       renderRules();
-      updateStickySectionAddButton();
+      updateScrolledSectionControls();
     },
     updateCounts(nextRules, nextActiveTab) {
       rules = nextRules;
       activeTab = nextActiveTab;
       updateTabs();
+      updateDynamicTabLabels();
     },
     focusRule,
     closeHelp: closeUrlFilterHelp
