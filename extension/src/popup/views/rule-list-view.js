@@ -327,7 +327,7 @@ export function createRuleListView({
     bindSortCommit(value, kind, "value");
     bindSortCommit(urlFilter, kind, "urlFilter");
     bindSortCommit(comment, kind, "comment");
-    deleteButton?.addEventListener("click", () => deleteRule(rule.id));
+    deleteButton?.addEventListener("click", (event) => deleteRule(rule.id, event));
   
     return node;
   }
@@ -425,7 +425,7 @@ export function createRuleListView({
         updateCookieDirection(node, rule.id, kind, getControlValue(session, "true"));
       });
     }
-    deleteButton?.addEventListener("click", () => deleteRule(rule.id));
+    deleteButton?.addEventListener("click", (event) => deleteRule(rule.id, event));
   
     return node;
   }
