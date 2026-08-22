@@ -47,6 +47,8 @@ const hostAccessTrigger = document.querySelector("#host-access-trigger");
 const hostAccessPopover = document.querySelector("#host-access-popover");
 const hostAccessMessage = document.querySelector("#host-access-message");
 const grantHostAccessButton = document.querySelector("#grant-host-access");
+const rulesShell = document.querySelector(".rules-shell");
+const stickySectionAddButton = document.querySelector("#sticky-section-add-button");
 const tabs = Array.from(document.querySelectorAll(".tab"));
 const countNodes = Array.from(document.querySelectorAll("[data-count]"));
 const importProfilesInput = document.createElement("input");
@@ -70,6 +72,8 @@ let hostAccessError = "";
 const expandedCookieDetails = new Set();
 const ruleListView = createRuleListView({
   rulesContainer,
+  rulesShell,
+  stickySectionAddButton,
   headerTemplate,
   cookieTemplate,
   urlHelpTemplate,
@@ -363,12 +367,26 @@ rulesContainer.addEventListener("click", (event) => {
     return;
   }
 
+  addRuleFromButton(addButton);
+});
+
+stickySectionAddButton.addEventListener("click", () => {
+  addRuleFromButton(stickySectionAddButton);
+});
+
+function addRuleFromButton(addButton) {
+  if (!addButton.dataset.kind) {
+    return;
+  }
+
   const kind = ruleKind({ kind: addButton.dataset.kind });
-  rules = [...rules, createRuleForKind(kind)];
+  const newRule = createRuleForKind(kind);
+  rules = [...rules, newRule];
   updateViewedProfileRules(rules);
   render();
+  ruleListView.focusRule(newRule.id);
   saveNow();
-});
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {

@@ -8,6 +8,8 @@ import { sortRulesForSection } from "../sorting.js";
 
 export function createRuleListView({
   rulesContainer,
+  rulesShell,
+  stickySectionAddButton,
   headerTemplate,
   cookieTemplate,
   urlHelpTemplate,
@@ -27,6 +29,9 @@ export function createRuleListView({
   const updateRule = onUpdateRule;
   const deleteRule = onDeleteRule;
   const changeSort = onChangeSort;
+
+  rulesShell.addEventListener("scroll", updateStickySectionAddButton);
+  window.addEventListener("resize", updateStickySectionAddButton);
 
   function updateTabs() {
     for (const tab of tabs) {
@@ -117,6 +122,53 @@ export function createRuleListView({
     section.append(list);
     return { node: section, ruleCount: sectionRules.length };
   }
+
+  function updateStickySectionAddButton() {
+    stickySectionAddButton.hidden = true;
+    delete stickySectionAddButton.dataset.kind;
+
+    const sections = Array.from(rulesContainer.querySelectorAll(".rule-section"));
+    for (const addButton of rulesContainer.querySelectorAll(".rule-section-header .section-add-button")) {
+      addButton.classList.remove("is-sticky-replaced");
+    }
+
+    if (sections.length === 0) {
+      return;
+    }
+
+    const scrollViewportTop = rulesShell.getBoundingClientRect().top;
+    let currentSection = sections[0];
+
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top > scrollViewportTop) {
+        break;
+      }
+      currentSection = section;
+    }
+
+    const originalAddButton = currentSection.querySelector(".section-add-button");
+    const tabsRow = stickySectionAddButton.parentElement;
+    if (!originalAddButton || !tabsRow) {
+      return;
+    }
+
+    const originalAddButtonRect = originalAddButton.getBoundingClientRect();
+    const hiddenButtonHeight = Math.max(0, scrollViewportTop - originalAddButtonRect.top);
+    if (hiddenButtonHeight <= originalAddButtonRect.height / 2) {
+      return;
+    }
+
+    const tabsRowRect = tabsRow.getBoundingClientRect();
+    originalAddButton.classList.add("is-sticky-replaced");
+    stickySectionAddButton.style.left = `${originalAddButtonRect.left - tabsRowRect.left}px`;
+    stickySectionAddButton.dataset.kind = originalAddButton.dataset.kind;
+    stickySectionAddButton.title = originalAddButton.title;
+    stickySectionAddButton.setAttribute(
+      "aria-label",
+      originalAddButton.getAttribute("aria-label") || "Add rule"
+    );
+    stickySectionAddButton.hidden = false;
+  }
   
   function renderSectionHelp(kind) {
     const wrapper = document.createElement("span");
@@ -205,7 +257,8 @@ export function createRuleListView({
     const urlFilter = node.querySelector(".url-filter");
     const comment = node.querySelector(".comment");
     const deleteButton = node.querySelector(".delete");
-  
+
+    node.dataset.ruleId = rule.id;
     node.classList.toggle("request-header-rule", kind === "requestHeader");
     node.classList.toggle("response-header-rule", kind === "responseHeader");
     setFieldChecked(enabled, Boolean(rule.enabled));
@@ -265,7 +318,8 @@ export function createRuleListView({
     const deleteButton = node.querySelector(".delete");
     const detailToggles = Array.from(node.querySelectorAll(".detail-toggle"));
     const detailDoneButtons = Array.from(node.querySelectorAll(".detail-done"));
-  
+
+    node.dataset.ruleId = rule.id;
     node.classList.toggle("request-cookie-rule", kind === "requestCookie");
     node.classList.toggle("response-cookie-rule", kind === "responseCookie");
     setFieldChecked(enabled, Boolean(rule.enabled));
@@ -701,6 +755,19 @@ export function createRuleListView({
     }
   }
 
+  function focusRule(ruleId) {
+    const ruleNode = Array.from(rulesContainer.querySelectorAll(".rule"))
+      .find((node) => node.dataset.ruleId === ruleId);
+    const primaryField = ruleNode?.querySelector(".header, .name");
+
+    if (!ruleNode || !primaryField) {
+      return;
+    }
+
+    ruleNode.scrollIntoView({ block: "nearest" });
+    primaryField.focus({ preventScroll: true });
+  }
+
   return {
     render(nextRules, nextActiveTab, nextSortByKind = {}) {
       if (preserveSuppressedPreview) {
@@ -714,12 +781,14 @@ export function createRuleListView({
       sortByKind = nextSortByKind;
       updateTabs();
       renderRules();
+      updateStickySectionAddButton();
     },
     updateCounts(nextRules, nextActiveTab) {
       rules = nextRules;
       activeTab = nextActiveTab;
       updateTabs();
     },
+    focusRule,
     closeHelp: closeUrlFilterHelp
   };
 }
