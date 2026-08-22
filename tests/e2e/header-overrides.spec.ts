@@ -1163,6 +1163,123 @@ test("adds rules from grouped request and response sections", async () => {
   }
 });
 
+test("updates the active tab label after request and response titles leave the viewport", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const rules = [
+      ...Array.from({ length: 10 }, (_, index) => requestHeaderRule({
+        id: `dynamic-label-request-header-${index}`,
+        header: `X-Dynamic-Request-${index}`
+      })),
+      ...Array.from({ length: 14 }, (_, index) => responseHeaderRule({
+        id: `dynamic-label-response-header-${index}`,
+        header: `X-Dynamic-Response-${index}`
+      })),
+      ...Array.from({ length: 10 }, (_, index) => requestCookieRule({
+        id: `dynamic-label-request-cookie-${index}`,
+        name: `dynamic_request_cookie_${index}`
+      })),
+      ...Array.from({ length: 14 }, (_, index) => responseCookieRule({
+        id: `dynamic-label-response-cookie-${index}`,
+        name: `dynamic_response_cookie_${index}`
+      }))
+    ];
+    await seedRules(extension.extensionPage, rules);
+    await extension.extensionPage.reload();
+
+    const rulesShell = extension.extensionPage.locator(".rules-shell");
+    const headersLabel = extension.extensionPage.locator('[data-tab="headers"] .tab-label');
+    const cookiesLabel = extension.extensionPage.locator('[data-tab="cookies"] .tab-label');
+    const setSectionTitleHiddenRatio = async (sectionIndex: number, hiddenRatio: number) => {
+      return rulesShell.evaluate((shell, position) => {
+        const section = shell.querySelectorAll(".rule-section")[position.sectionIndex];
+        const title = section?.querySelector("h2");
+
+        if (!(title instanceof HTMLElement)) {
+          throw new Error("Could not find the section title.");
+        }
+
+        const shellTop = shell.getBoundingClientRect().top;
+        const titleBounds = title.getBoundingClientRect();
+        shell.scrollTop += titleBounds.top - shellTop + titleBounds.height * position.hiddenRatio;
+        shell.dispatchEvent(new Event("scroll"));
+
+        const updatedTitleBounds = title.getBoundingClientRect();
+        return (shellTop - updatedTitleBounds.top) / updatedTitleBounds.height;
+      }, { sectionIndex, hiddenRatio });
+    };
+    const scrollToTop = async () => {
+      await rulesShell.evaluate((shell) => {
+        shell.scrollTop = 0;
+        shell.dispatchEvent(new Event("scroll"));
+      });
+    };
+    const expectSectionTitlePartiallyHidden = async (sectionIndex: number) => {
+      const hiddenRatio = await setSectionTitleHiddenRatio(sectionIndex, 0.5);
+      expect(hiddenRatio).toBeGreaterThan(0);
+      expect(hiddenRatio).toBeLessThan(1);
+    };
+
+    await expect(headersLabel).toHaveText("Headers");
+    await expect(cookiesLabel).toHaveText("Cookies");
+
+    await expectSectionTitlePartiallyHidden(0);
+    await expect(headersLabel).toHaveText("Headers");
+    await expect(cookiesLabel).toHaveText("Cookies");
+
+    expect(await setSectionTitleHiddenRatio(0, 1.1)).toBeGreaterThan(1);
+    await expect(headersLabel).toHaveText("Request Headers");
+    await expect(cookiesLabel).toHaveText("Cookies");
+
+    await extension.extensionPage.locator(".request-header-rule .enabled").first().uncheck();
+    await expect(headersLabel).toHaveText("Request Headers");
+
+    await expectSectionTitlePartiallyHidden(1);
+    await expect(headersLabel).toHaveText("Request Headers");
+
+    expect(await setSectionTitleHiddenRatio(1, 1.1)).toBeGreaterThan(1);
+    await expect(headersLabel).toHaveText("Response Headers");
+
+    await expectSectionTitlePartiallyHidden(1);
+    await expect(headersLabel).toHaveText("Request Headers");
+
+    await expectSectionTitlePartiallyHidden(0);
+    await expect(headersLabel).toHaveText("Headers");
+
+    await extension.extensionPage.locator('[data-tab="cookies"]').click();
+    await scrollToTop();
+    await expect(headersLabel).toHaveText("Headers");
+    await expect(cookiesLabel).toHaveText("Cookies");
+
+    await expectSectionTitlePartiallyHidden(0);
+    await expect(cookiesLabel).toHaveText("Cookies");
+    await expect(headersLabel).toHaveText("Headers");
+
+    expect(await setSectionTitleHiddenRatio(0, 1.1)).toBeGreaterThan(1);
+    await expect(cookiesLabel).toHaveText("Request Cookies");
+    await expect(headersLabel).toHaveText("Headers");
+
+    await expectSectionTitlePartiallyHidden(1);
+    await expect(cookiesLabel).toHaveText("Request Cookies");
+
+    expect(await setSectionTitleHiddenRatio(1, 1.1)).toBeGreaterThan(1);
+    await expect(cookiesLabel).toHaveText("Response Cookies");
+
+    await expectSectionTitlePartiallyHidden(1);
+    await expect(cookiesLabel).toHaveText("Request Cookies");
+
+    await expectSectionTitlePartiallyHidden(0);
+    await expect(cookiesLabel).toHaveText("Cookies");
+
+    await scrollToTop();
+    await expect(headersLabel).toHaveText("Headers");
+    await expect(cookiesLabel).toHaveText("Cookies");
+  } finally {
+    await extension.close();
+  }
+});
+
 test("moves the current section add action beside the tabs after its original button is more than half hidden", async () => {
   const extension = await launchExtension();
 
