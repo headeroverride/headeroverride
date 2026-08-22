@@ -34,6 +34,9 @@ import {
   setEveryRuleEnabled,
   shouldExpandNewRule
 } from "./state.js";
+
+const DELETE_CLICK_GUARD_DURATION_MS = 800;
+const DELETE_CLICK_GUARD_RADIUS_PX = 6;
 const rulesContainer = document.querySelector("#rules");
 const headerTemplate = document.querySelector("#header-rule-template");
 const cookieTemplate = document.querySelector("#cookie-rule-template");
@@ -69,6 +72,7 @@ let rulesEnabled = true;
 let masterToggleSnapshot = null;
 let hostAccessState = HOST_ACCESS_ALL;
 let hostAccessError = "";
+let deleteClickGuard = null;
 const expandedCookieDetails = new Set();
 const ruleListView = createRuleListView({
   rulesContainer,
@@ -359,6 +363,20 @@ document.addEventListener("pointerdown", (event) => {
   }
 });
 
+document.addEventListener("pointermove", (event) => {
+  if (!deleteClickGuard) {
+    return;
+  }
+
+  const distance = Math.hypot(
+    event.clientX - deleteClickGuard.clientX,
+    event.clientY - deleteClickGuard.clientY
+  );
+  if (distance > DELETE_CLICK_GUARD_RADIUS_PX) {
+    deleteClickGuard = null;
+  }
+});
+
 rulesContainer.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : event.target.parentElement;
   const addButton = target?.closest("[data-action='add-rule']");
@@ -367,16 +385,20 @@ rulesContainer.addEventListener("click", (event) => {
     return;
   }
 
-  addRuleFromButton(addButton);
+  addRuleFromButton(addButton, event);
 });
 
-stickySectionAddButton.addEventListener("click", () => {
-  addRuleFromButton(stickySectionAddButton);
+stickySectionAddButton.addEventListener("click", (event) => {
+  addRuleFromButton(stickySectionAddButton, event);
 });
 
-function addRuleFromButton(addButton) {
+function addRuleFromButton(addButton, event) {
   if (!addButton.dataset.kind) {
     return;
+  }
+
+  if (addButton !== stickySectionAddButton) {
+    armDeleteClickGuard(event);
   }
 
   const kind = ruleKind({ kind: addButton.dataset.kind });
@@ -386,6 +408,35 @@ function addRuleFromButton(addButton) {
   render();
   ruleListView.focusRule(newRule.id);
   saveNow();
+}
+
+function armDeleteClickGuard(event) {
+  if (!(event instanceof MouseEvent) || event.detail === 0) {
+    deleteClickGuard = null;
+    return;
+  }
+
+  deleteClickGuard = {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    expiresAt: performance.now() + DELETE_CLICK_GUARD_DURATION_MS
+  };
+}
+
+function shouldIgnoreGuardedDelete(event) {
+  const guard = deleteClickGuard;
+
+  if (!guard || !(event instanceof MouseEvent) || event.detail === 0) {
+    return false;
+  }
+
+  const distance = Math.hypot(event.clientX - guard.clientX, event.clientY - guard.clientY);
+  if (performance.now() > guard.expiresAt || distance > DELETE_CLICK_GUARD_RADIUS_PX) {
+    deleteClickGuard = null;
+    return false;
+  }
+
+  return true;
 }
 
 document.addEventListener("keydown", (event) => {
@@ -781,7 +832,11 @@ function updateRule(id, patch) {
   saveNow();
 }
 
-function deleteRule(id) {
+function deleteRule(id, event) {
+  if (shouldIgnoreGuardedDelete(event)) {
+    return;
+  }
+
   expandedCookieDetails.delete(id);
   rules = rules.filter((rule) => rule.id !== id);
   updateViewedProfileRules(rules);

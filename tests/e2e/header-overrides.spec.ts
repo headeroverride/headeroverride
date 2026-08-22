@@ -1163,6 +1163,60 @@ test("adds rules from grouped request and response sections", async () => {
   }
 });
 
+test("guards against repeated stationary clicks deleting a rule after add autoscroll", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const rules = Array.from({ length: 20 }, (_, index) => requestHeaderRule({
+      id: `guarded-add-request-header-${index}`,
+      header: `X-Guarded-Add-${index}`
+    }));
+    await seedRules(extension.extensionPage, rules);
+    await extension.extensionPage.reload();
+
+    const originalAddButton = extension.extensionPage
+      .locator(".rule-section")
+      .first()
+      .locator(".section-add-button");
+    const addButtonBounds = await originalAddButton.boundingBox();
+    if (!addButtonBounds) {
+      throw new Error("Could not locate the request section add button.");
+    }
+
+    const clickPoint = {
+      x: addButtonBounds.x + addButtonBounds.width / 2,
+      y: addButtonBounds.y + addButtonBounds.height / 2
+    };
+    await extension.extensionPage.mouse.click(clickPoint.x, clickPoint.y);
+
+    const elementAtClickPoint = await extension.extensionPage.evaluate((point) => {
+      const element = document.elementFromPoint(point.x, point.y);
+      return {
+        className: element instanceof HTMLElement ? element.className : "",
+        isDelete: element?.closest(".delete") instanceof HTMLElement
+      };
+    }, clickPoint);
+    expect(elementAtClickPoint.isDelete, JSON.stringify(elementAtClickPoint)).toBe(true);
+
+    for (let index = 0; index < 4; index += 1) {
+      await extension.extensionPage.mouse.click(clickPoint.x, clickPoint.y);
+    }
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules.length;
+    }).toBe(21);
+
+    await extension.extensionPage.mouse.move(clickPoint.x - 20, clickPoint.y);
+    await extension.extensionPage.locator(".request-header-rule .delete").first().click();
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules.length;
+    }).toBe(20);
+  } finally {
+    await extension.close();
+  }
+});
+
 test("updates the active tab label after request and response titles leave the viewport", async () => {
   const extension = await launchExtension();
 
