@@ -662,6 +662,7 @@ h1 {
 }
 
 .tabs-row {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -846,7 +847,7 @@ h1 {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 0 10px;
+  padding: 0 9px;
 }
 
 .rule-section-title {
@@ -881,7 +882,7 @@ h1 {
 
 .section-add-button {
   display: inline-grid;
-  justify-self: end;
+  justify-self: center;
   place-items: center;
   width: 24px;
   height: 24px;
@@ -899,6 +900,21 @@ h1 {
   border-color: var(--accent);
   background: var(--accent-soft-hover);
   outline: none;
+}
+
+.rule-section-header .section-add-button.is-sticky-replaced {
+  visibility: hidden;
+}
+
+.tabs-add-button {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.tabs-add-button[hidden] {
+  display: none;
 }
 
 .rule-section-list {
@@ -1370,6 +1386,7 @@ h1 {
 }
 
 .delete {
+  justify-self: center;
   color: var(--danger);
 }
 

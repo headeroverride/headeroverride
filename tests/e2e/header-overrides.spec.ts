@@ -1149,13 +1149,128 @@ test("adds rules from grouped request and response sections", async () => {
     await extension.extensionPage.reload();
 
     await extension.extensionPage.getByRole("button", { name: "Add response header rule", exact: true }).click();
+    await expect(extension.extensionPage.locator(".response-header-rule .header")).toBeFocused();
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
     await extension.extensionPage.getByRole("button", { name: "Add response cookie rule", exact: true }).click();
+    await expect(extension.extensionPage.locator(".response-cookie-rule .name")).toBeFocused();
 
     await expect.poll(async () => {
       const stored = await readStoredRules(extension.extensionPage);
       return stored.profiles[0].rules.map((rule) => rule.kind);
     }).toEqual(["responseHeader", "responseCookie"]);
+  } finally {
+    await extension.close();
+  }
+});
+
+test("moves the current section add action beside the tabs after its original button is more than half hidden", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const rules = [
+      ...Array.from({ length: 10 }, (_, index) => requestHeaderRule({
+        id: `sticky-request-header-${index}`,
+        header: `X-Sticky-Request-${index}`
+      })),
+      ...Array.from({ length: 14 }, (_, index) => responseHeaderRule({
+        id: `sticky-response-header-${index}`,
+        header: `X-Sticky-Response-${index}`
+      })),
+      ...Array.from({ length: 10 }, (_, index) => requestCookieRule({
+        id: `sticky-request-cookie-${index}`,
+        name: `sticky_request_cookie_${index}`
+      })),
+      ...Array.from({ length: 10 }, (_, index) => responseCookieRule({
+        id: `sticky-response-cookie-${index}`,
+        name: `sticky_response_cookie_${index}`
+      }))
+    ];
+    await seedRules(extension.extensionPage, rules);
+    await extension.extensionPage.reload();
+
+    const rulesShell = extension.extensionPage.locator(".rules-shell");
+    const stickyAddButton = extension.extensionPage.locator("#sticky-section-add-button");
+    const requestSection = extension.extensionPage.locator(".rule-section").first();
+    const requestSectionAddButton = requestSection.locator(".section-add-button");
+    const requestRuleDeleteButton = requestSection.locator(".delete").first();
+    const centerX = (element: HTMLElement) => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.left + bounds.width / 2;
+    };
+    const setSectionButtonHiddenRatio = async (sectionIndex: number, hiddenRatio: number) => {
+      return rulesShell.evaluate((shell, position) => {
+        const section = shell.querySelectorAll(".rule-section")[position.sectionIndex];
+        const button = section?.querySelector(".section-add-button");
+
+        if (!(button instanceof HTMLElement)) {
+          throw new Error("Could not find the section add button.");
+        }
+
+        const shellTop = shell.getBoundingClientRect().top;
+        const buttonBounds = button.getBoundingClientRect();
+        shell.scrollTop += buttonBounds.top - shellTop + buttonBounds.height * position.hiddenRatio;
+        shell.dispatchEvent(new Event("scroll"));
+
+        const updatedButtonBounds = button.getBoundingClientRect();
+        return (shellTop - updatedButtonBounds.top) / updatedButtonBounds.height;
+      }, { sectionIndex, hiddenRatio });
+    };
+
+    await expect(stickyAddButton).toBeHidden();
+    expect(await requestSectionAddButton.evaluate(centerX))
+      .toBeCloseTo(await requestRuleDeleteButton.evaluate(centerX), 5);
+    expect(await setSectionButtonHiddenRatio(0, 0.5)).toBeCloseTo(0.5, 2);
+    await expect(stickyAddButton).toBeHidden();
+    await expect(requestSectionAddButton).toBeVisible();
+
+    expect(await setSectionButtonHiddenRatio(0, 0.6)).toBeGreaterThan(0.5);
+    await expect(requestSectionAddButton).toBeHidden();
+    await expect(stickyAddButton).toBeVisible();
+    await expect(stickyAddButton).toHaveAttribute("aria-label", "Add request header rule");
+    expect(await stickyAddButton.evaluate(centerX))
+      .toBeCloseTo(await requestRuleDeleteButton.evaluate(centerX), 5);
+    await stickyAddButton.click();
+    await expect(requestSection.locator(".request-header-rule .header").last()).toBeFocused();
+
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules.filter((rule) => rule.kind === "requestHeader").length;
+    }).toBe(11);
+
+    await rulesShell.evaluate((shell) => {
+      shell.scrollTop = 0;
+      shell.dispatchEvent(new Event("scroll"));
+    });
+    await expect(stickyAddButton).toBeHidden();
+
+    expect(await setSectionButtonHiddenRatio(1, 0.6)).toBeGreaterThan(0.5);
+    await expect(stickyAddButton).toBeVisible();
+    await expect(stickyAddButton).toHaveAttribute("aria-label", "Add response header rule");
+    await stickyAddButton.click();
+    await expect(extension.extensionPage.locator(".response-header-rule .header").last()).toBeFocused();
+
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules.filter((rule) => rule.kind === "responseHeader").length;
+    }).toBe(15);
+
+    await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
+    await rulesShell.evaluate((shell) => {
+      shell.scrollTop = 0;
+      shell.dispatchEvent(new Event("scroll"));
+    });
+    await expect(stickyAddButton).toBeHidden();
+
+    expect(await setSectionButtonHiddenRatio(0, 0.6)).toBeGreaterThan(0.5);
+    await expect(stickyAddButton).toBeVisible();
+    await expect(stickyAddButton).toHaveAttribute("aria-label", "Add request cookie rule");
+    await stickyAddButton.click();
+    await expect(extension.extensionPage.locator(".request-cookie-rule .name").last()).toBeFocused();
+
+    await expect.poll(async () => {
+      const stored = await readStoredRules(extension.extensionPage);
+      return stored.profiles[0].rules.filter((rule) => rule.kind === "requestCookie").length;
+    }).toBe(11);
   } finally {
     await extension.close();
   }
