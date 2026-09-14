@@ -15,10 +15,14 @@
     "prescreenshots:generated": "npm run build",
     "screenshots:generated": "node scripts/capture_chrome_store_screenshots.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:stable": "node scripts/run_chrome_e2e.mjs stable",
+    "test:e2e:beta": "node scripts/run_chrome_e2e.mjs beta",
+    "test:e2e:dev": "node scripts/run_chrome_e2e.mjs dev",
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.63.0",
+    "@puppeteer/browsers": "^3.2.2",
     "esbuild": "^0.28.1"
   }
 }

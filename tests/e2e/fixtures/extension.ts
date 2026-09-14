@@ -60,7 +60,8 @@ export async function launchExtension(options: LaunchExtensionOptions = {}): Pro
   fs.mkdirSync(userDataDir, { recursive: true });
   const context = await chromium.launchPersistentContext(userDataDir, {
     acceptDownloads: true,
-    channel: process.env.E2E_BROWSER_CHANNEL || undefined,
+    executablePath: process.env.E2E_BROWSER_EXECUTABLE || undefined,
+    channel: process.env.E2E_BROWSER_EXECUTABLE ? undefined : process.env.E2E_BROWSER_CHANNEL || undefined,
     headless: false,
     args: [
       `--disable-extensions-except=${extensionPath}`,

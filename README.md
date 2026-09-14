@@ -51,7 +51,7 @@ Rules are saved automatically and synced into the browser's dynamic request rule
 
 ## Development
 
-Install dependencies:
+Use Node.js 22.12 or newer, then install dependencies:
 
 ```sh
 npm ci
@@ -74,6 +74,38 @@ Run tests in headed mode:
 ```sh
 npm run test:e2e:headed
 ```
+
+Run the suite against the latest available Chrome for Testing Stable, Beta, or Dev:
+
+```sh
+npm run test:e2e:stable
+npm run test:e2e:beta
+npm run test:e2e:dev
+```
+
+Each command builds the extension, resolves the latest available version for the
+selected channel, downloads it into `.cache/browsers` if needed, and runs Playwright
+with that executable. The version and executable path are printed before the tests.
+An internet connection is needed to resolve the channel on each run; existing
+downloads are reused. These tests open a visible browser, like the default suite.
+Chrome for Testing supports the unpacked-extension flags used by this harness.
+
+Pass Playwright arguments after `--`, for example:
+
+```sh
+npm run test:e2e:beta -- tests/e2e/theme.spec.ts
+npm run test:e2e:dev -- --grep "request header overrides"
+```
+
+To reuse a specific downloaded browser without resolving or downloading a channel:
+
+```sh
+E2E_BROWSER_EXECUTABLE="/absolute/path/to/chrome" npm run test:e2e
+```
+
+`E2E_BROWSER_EXECUTABLE` takes precedence over `E2E_BROWSER_CHANNEL`. The default
+`npm run test:e2e` command continues to use Playwright's bundled browser when both
+variables are unset.
 
 ## Packaging
 
