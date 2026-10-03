@@ -391,59 +391,53 @@ test("stops and restores request and response header/cookie rules with the maste
     const page = await extension.context.newPage();
     await page.goto(server.origin);
 
-    const enabledEcho = await page.evaluate(async () => {
-      const response = await fetch("/echo");
-      return response.json();
-    });
-    const enabledResponseHeader = await page.evaluate(async () => {
-      const response = await fetch("/empty");
-      return response.headers.get("x-e2e-master-response");
-    });
-    const enabledCookies = await extension.context.cookies(server.origin);
+    const readNetworkState = async (clearCookies = false) => {
+      if (clearCookies) {
+        await extension.context.clearCookies();
+      }
 
-    expect(enabledEcho.headers["x-e2e-master-request"]).toBe("request-enabled");
-    expect(enabledEcho.headers.cookie).toContain("e2e_master_request_cookie=request-cookie-enabled");
-    expect(enabledResponseHeader).toBe("response-enabled");
-    expect(enabledCookies.find((cookie) => cookie.name === "e2e_master_response_cookie")?.value)
-      .toBe("response-cookie-enabled");
+      const state = await page.evaluate(async () => {
+        const echo = await (await fetch("/echo")).json();
+        const responseHeader = (await fetch("/empty")).headers.get("x-e2e-master-response");
+        return {
+          requestHeader: echo.headers["x-e2e-master-request"] || null,
+          requestCookie: (echo.headers.cookie || "")
+            .includes("e2e_master_request_cookie=request-cookie-enabled"),
+          responseHeader
+        };
+      });
+      const cookies = await extension.context.cookies(server.origin);
 
-    await extension.context.clearCookies();
+      return {
+        ...state,
+        responseCookie: cookies.find((cookie) =>
+          cookie.name === "e2e_master_response_cookie"
+        )?.value || null
+      };
+    };
+
+    const enabledState = {
+      requestHeader: "request-enabled",
+      requestCookie: true,
+      responseHeader: "response-enabled",
+      responseCookie: "response-cookie-enabled"
+    };
+    const disabledState = {
+      requestHeader: null,
+      requestCookie: false,
+      responseHeader: null,
+      responseCookie: null
+    };
+
+    await expect.poll(() => readNetworkState()).toEqual(enabledState);
+
     await extension.extensionPage.locator("#global-rules-toggle").uncheck();
     await waitForAppliedRuleCount(extension.extensionPage, 0);
-
-    const disabledEcho = await page.evaluate(async () => {
-      const response = await fetch("/echo");
-      return response.json();
-    });
-    const disabledResponseHeader = await page.evaluate(async () => {
-      const response = await fetch("/empty");
-      return response.headers.get("x-e2e-master-response");
-    });
-    const disabledCookies = await extension.context.cookies(server.origin);
-
-    expect(disabledEcho.headers["x-e2e-master-request"]).toBeUndefined();
-    expect(disabledEcho.headers.cookie || "").not.toContain("e2e_master_request_cookie=request-cookie-enabled");
-    expect(disabledResponseHeader).toBeNull();
-    expect(disabledCookies.some((cookie) => cookie.name === "e2e_master_response_cookie")).toBe(false);
+    await expect.poll(() => readNetworkState(true)).toEqual(disabledState);
 
     await extension.extensionPage.locator("#global-rules-toggle").check();
     await waitForAppliedRuleCount(extension.extensionPage, 4);
-
-    const restoredEcho = await page.evaluate(async () => {
-      const response = await fetch("/echo");
-      return response.json();
-    });
-    const restoredResponseHeader = await page.evaluate(async () => {
-      const response = await fetch("/empty");
-      return response.headers.get("x-e2e-master-response");
-    });
-    const restoredCookies = await extension.context.cookies(server.origin);
-
-    expect(restoredEcho.headers["x-e2e-master-request"]).toBe("request-enabled");
-    expect(restoredEcho.headers.cookie).toContain("e2e_master_request_cookie=request-cookie-enabled");
-    expect(restoredResponseHeader).toBe("response-enabled");
-    expect(restoredCookies.find((cookie) => cookie.name === "e2e_master_response_cookie")?.value)
-      .toBe("response-cookie-enabled");
+    await expect.poll(() => readNetworkState()).toEqual(enabledState);
   } finally {
     await extension.close();
   }
@@ -692,9 +686,29 @@ test("turns the master toggle off when the last request or response cookie rule 
 
     const page = await extension.context.newPage();
     await page.goto(server.origin);
-    const beforeDelete = await page.evaluate(async () => (await fetch("/echo")).json());
-    await page.evaluate(async () => { await fetch("/empty"); });
-    expect(beforeDelete.headers.cookie).toContain("last_request_cookie=cookie-value");
+
+    const readCookieNetworkState = async (clearCookies = false) => {
+      if (clearCookies) {
+        await extension.context.clearCookies();
+      }
+
+      const requestCookie = await page.evaluate(async () => {
+        const echo = await (await fetch("/echo")).json();
+        await fetch("/empty");
+        return (echo.headers.cookie || "").includes("last_request_cookie=cookie-value");
+      });
+      const cookies = await extension.context.cookies(server.origin);
+
+      return {
+        requestCookie,
+        responseCookie: cookies.some((cookie) => cookie.name === "last_response_cookie")
+      };
+    };
+
+    await expect.poll(() => readCookieNetworkState()).toEqual({
+      requestCookie: true,
+      responseCookie: true
+    });
 
     const cookieRules = extension.extensionPage.locator(".cookie-rule");
     await cookieRules.first().locator(".delete").click();
@@ -702,13 +716,11 @@ test("turns the master toggle off when the last request or response cookie rule 
     await expect(extension.extensionPage.locator("#global-rules-toggle")).toBeChecked();
     await expect(cookieRules).toHaveCount(1);
 
-    await extension.context.clearCookies();
     await waitForAppliedRuleCount(extension.extensionPage, 1);
-    const afterRequestCookieDelete = await page.evaluate(async () => (await fetch("/echo")).json());
-    await page.evaluate(async () => { await fetch("/empty"); });
-    const responseCookieAfterRequestDelete = await extension.context.cookies(server.origin);
-    expect(afterRequestCookieDelete.headers.cookie || "").not.toContain("last_request_cookie=cookie-value");
-    expect(responseCookieAfterRequestDelete.some((cookie) => cookie.name === "last_response_cookie")).toBe(true);
+    await expect.poll(() => readCookieNetworkState(true)).toEqual({
+      requestCookie: false,
+      responseCookie: true
+    });
 
     await extension.extensionPage.locator(".cookie-rule .delete").click();
 
@@ -725,12 +737,10 @@ test("turns the master toggle off when the last request or response cookie rule 
     }).toEqual({ rulesEnabled: false, ruleCount: 0 });
     await waitForAppliedRuleCount(extension.extensionPage, 0);
 
-    await extension.context.clearCookies();
-    const afterAllCookieDelete = await page.evaluate(async () => (await fetch("/echo")).json());
-    await page.evaluate(async () => { await fetch("/empty"); });
-    const responseCookiesAfterAllDelete = await extension.context.cookies(server.origin);
-    expect(afterAllCookieDelete.headers.cookie || "").not.toContain("last_request_cookie=cookie-value");
-    expect(responseCookiesAfterAllDelete.some((cookie) => cookie.name === "last_response_cookie")).toBe(false);
+    await expect.poll(() => readCookieNetworkState(true)).toEqual({
+      requestCookie: false,
+      responseCookie: false
+    });
   } finally {
     await extension.close();
   }
