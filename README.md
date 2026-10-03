@@ -7,7 +7,6 @@ Header Override is a small browser extension for overriding request headers, res
 - Firefox Add-ons: https://addons.mozilla.org/en-US/firefox/addon/headeroverride
 
 - Website: https://headeroverride.com
-- Website source: https://github.com/headeroverride/headeroverride.com
 
 ## Repository layout
 
