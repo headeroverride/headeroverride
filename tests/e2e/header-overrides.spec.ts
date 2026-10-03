@@ -639,6 +639,14 @@ test("turns the master toggle off when the last active rule is deleted", async (
   try {
     await seedRules(extension.extensionPage, [requestHeaderRule({ id: "last-active-rule" })]);
     await extension.extensionPage.reload();
+    await extension.extensionPage.waitForTimeout(250);
+
+    const toggle = extension.extensionPage.locator("#global-rules-toggle");
+    await expect(extension.extensionPage.locator(".request-header-rule .header"))
+      .toHaveValue("X-E2E-Request");
+    await toggle.uncheck();
+    await waitForAppliedRuleCount(extension.extensionPage, 0);
+    await toggle.check();
     await waitForAppliedRuleCount(extension.extensionPage, 1);
 
     const page = await extension.context.newPage();
@@ -648,9 +656,8 @@ test("turns the master toggle off when the last active rule is deleted", async (
 
     await extension.extensionPage.locator(".request-header-rule .delete").click();
 
-    await expect(extension.extensionPage.locator("#global-rules-toggle")).not.toBeChecked();
-    await expect(extension.extensionPage.locator("#global-rules-toggle"))
-      .toHaveAttribute("aria-label", "All rules paused");
+    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-label", "All rules paused");
     await expect(extension.extensionPage.locator(".profile-current-badge"))
       .toHaveText("Inactive");
     await expect(extension.extensionPage.locator(".request-header-rule")).toHaveCount(0);
