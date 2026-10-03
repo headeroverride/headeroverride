@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   launchExtension,
+  reloadExtensionPage,
   readPopupState,
   readStoredRules,
   requestCookieRule,
@@ -36,7 +37,7 @@ test("previews and cycles the On-field arrow for enabled rules", async () => {
       requestHeaderRule({ id: "enabled-one", header: "X-Enabled-One", enabled: true }),
       requestHeaderRule({ id: "enabled-two", header: "X-Enabled-Two", enabled: true })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const request = section(extension.extensionPage, "Request");
     await expect(request.locator(".enabled")).toHaveCount(2);
@@ -127,7 +128,7 @@ test("sorts every visible column independently and clears back to stored order",
       }),
       responseHeaderRule({ id: "response-alpha", header: "X-Alpha" })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const request = section(extension.extensionPage, "Request");
     const response = section(extension.extensionPage, "Response");
@@ -192,7 +193,7 @@ test("persists independent section sorting per profile and tab", async () => {
         ]
       }
     ], "profile-one");
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await clickSort(section(extension.extensionPage, "Request"), "Header");
     await clickSort(section(extension.extensionPage, "Request"), "Header");
@@ -218,7 +219,7 @@ test("persists independent section sorting per profile and tab", async () => {
       .toEqual(["X-Response-B", "X-Response-A"]);
 
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await expect(extension.extensionPage.getByRole("button", { name: /Cookies/ }))
       .toHaveAttribute("aria-current", "page");
     await expect.poll(() => values(section(extension.extensionPage, "Request"), ".name"))
@@ -261,7 +262,7 @@ test("reorders committed edits and enabled changes while repairing malformed pop
         }
       }
     });
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const request = section(extension.extensionPage, "Request");
     await expect.poll(() => values(request, ".header")).toEqual(["X-A", "X-B"]);

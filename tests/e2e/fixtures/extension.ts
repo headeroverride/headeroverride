@@ -73,9 +73,27 @@ export async function launchExtension(options: LaunchExtensionOptions = {}): Pro
   });
   const serviceWorker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker");
   const extensionId = new URL(serviceWorker.url()).host;
+
+  await expect.poll(
+    async () => serviceWorker.evaluate(
+      async ({ storageKey, syncStatusKey }) => {
+        const stored = await chrome.storage.local.get([storageKey, syncStatusKey]);
+        const data = stored[storageKey];
+        const ruleCount = Array.isArray(data?.profiles)
+          ? data.profiles.reduce((count, profile) => count + (profile.rules?.length || 0), 0)
+          : 0;
+
+        return ruleCount > 0 && Number.isInteger(stored[syncStatusKey]?.appliedCount);
+      },
+      { storageKey: STORAGE_KEY, syncStatusKey: SYNC_STATUS_KEY }
+    ),
+    { timeout: 10000 }
+  ).toBe(true);
+
   const extensionPage = await context.newPage();
 
   await extensionPage.goto(`chrome-extension://${extensionId}/build/popup.html`);
+  await waitForPopupReady(extensionPage);
 
   return {
     context,
@@ -83,6 +101,15 @@ export async function launchExtension(options: LaunchExtensionOptions = {}): Pro
     extensionPage,
     close: () => context.close()
   };
+}
+
+export async function reloadExtensionPage(extensionPage: Page) {
+  await extensionPage.reload();
+  await waitForPopupReady(extensionPage);
+}
+
+async function waitForPopupReady(extensionPage: Page) {
+  await expect(extensionPage.locator(".rules-shell .rule-section")).toHaveCount(2);
 }
 
 export async function seedRules(extensionPage: Page, rules: OverrideRule[]) {

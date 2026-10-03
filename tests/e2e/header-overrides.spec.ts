@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   launchExtension,
+  reloadExtensionPage,
   readStoredRules,
   readSyncStatus,
   requestCookieRule,
@@ -151,7 +152,7 @@ test("cycles compact response operations without adding a rule-list column", asy
 
   try {
     await seedRules(extension.extensionPage, [responseHeaderRule()]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const headerOperation = extension.extensionPage.locator(".response-header-rule .operation-toggle");
     await expect(headerOperation).toHaveAttribute("aria-label", "Response header operation: Set");
@@ -185,7 +186,7 @@ test("supports operations on request header rules", async () => {
 
   try {
     await seedRules(extension.extensionPage, [requestHeaderRule()]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const operation = extension.extensionPage.locator(".request-header-rule .operation-toggle");
     await expect(operation).toHaveAttribute("aria-label", "Request header operation: Set");
@@ -209,7 +210,7 @@ test("toggles rules when clicking empty space in the On column", async () => {
       requestHeaderRule({ id: "column-toggle-header" }),
       requestCookieRule({ id: "column-toggle-cookie" })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const headerRow = extension.extensionPage.locator(".request-header-rule .header-rule-main");
     await headerRow.click({ position: { x: 25, y: 15 } });
@@ -251,7 +252,7 @@ test("keeps tab counters and applied badge counts in sync with enabled rules", a
       requestCookieRule({ id: "counter-incomplete-request-cookie", name: "" }),
       responseCookieRule({ id: "counter-incomplete-response-cookie", name: "" })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 7);
 
     await expect(extension.extensionPage.getByRole("button", { name: /Headers\s+4/ })).toBeVisible();
@@ -290,7 +291,7 @@ test("pauses and resumes all rules with the master toggle", async () => {
       ],
       "master-toggle-profile-one"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 2);
 
     const page = await extension.context.newPage();
@@ -384,7 +385,7 @@ test("stops and restores request and response header/cookie rules with the maste
         value: "response-cookie-enabled"
       })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 4);
 
     const page = await extension.context.newPage();
@@ -456,7 +457,7 @@ test("restores each rule's previous enabled state after the master toggle cycle"
       requestHeaderRule({ id: "snapshot-enabled-rule", enabled: true }),
       responseHeaderRule({ id: "snapshot-disabled-rule", enabled: false })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 1);
 
     const toggle = extension.extensionPage.locator("#global-rules-toggle");
@@ -493,7 +494,7 @@ test("turns the master toggle off when all active-profile rules are disabled ind
       requestHeaderRule({ id: "individual-disable-rule-one" }),
       responseHeaderRule({ id: "individual-disable-rule-two" })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 2);
 
     const toggle = extension.extensionPage.locator("#global-rules-toggle");
@@ -556,7 +557,7 @@ test("updates the master toggle and counters when one cookie rule is re-enabled"
       requestCookieRule({ id: "toggle-request-cookie" }),
       responseCookieRule({ id: "toggle-response-cookie" })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 4);
 
     await extension.extensionPage.locator(".header-rule .enabled").nth(0).uncheck();
@@ -600,7 +601,7 @@ test("does not apply a newly added rule while the master toggle is off", async (
 
   try {
     await seedRules(extension.extensionPage, []);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const toggle = extension.extensionPage.locator("#global-rules-toggle");
     await toggle.uncheck();
@@ -638,7 +639,7 @@ test("turns the master toggle off when the last active rule is deleted", async (
 
   try {
     await seedRules(extension.extensionPage, [requestHeaderRule({ id: "last-active-rule" })]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await extension.extensionPage.waitForTimeout(250);
 
     const toggle = extension.extensionPage.locator("#global-rules-toggle");
@@ -685,7 +686,7 @@ test("turns the master toggle off when the last request or response cookie rule 
       requestCookieRule({ id: "last-request-cookie-rule", name: "last_request_cookie" }),
       responseCookieRule({ id: "last-response-cookie-rule", name: "last_response_cookie" })
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
     await waitForAppliedRuleCount(extension.extensionPage, 2);
 
@@ -855,7 +856,7 @@ test("deletes a response cookie using the configured domain and path", async () 
       path: "/scoped",
       urlFilter: "*/delete-target/scoped"
     })]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
 
     await expect(extension.extensionPage.locator(".response-cookie-rule .operation-toggle"))
@@ -947,7 +948,7 @@ test("shows every rule-list column heading for headers and cookies", async () =>
       requestCookieRule(),
       responseCookieRule()
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     for (const sectionName of ["Request", "Response"] as const) {
       const section = extension.extensionPage.locator(".rule-section").filter({
@@ -987,7 +988,7 @@ test("applies all configured header and cookie rules together", async () => {
       requestCookieRule(),
       responseCookieRule()
     ]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 4);
 
     await expect(extension.extensionPage.getByRole("button", { name: /Headers\s+2/ })).toHaveAttribute("aria-current", "page");
@@ -1106,7 +1107,7 @@ test("defaults new response cookie SameSite selections to Lax", async () => {
   try {
     const { sameSite, ...ruleWithoutSameSite } = responseCookieRule();
     await seedRules(extension.extensionPage, [ruleWithoutSameSite]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
     await extension.extensionPage.getByRole("button", { name: "Edit" }).click();
@@ -1126,7 +1127,7 @@ test("aligns new session response cookie fields with existing editors", async ()
 
   try {
     await seedRules(extension.extensionPage, [responseCookieRule({ id: "existing-response-cookie" })]);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
     await extension.extensionPage.getByRole("button", { name: "Edit" }).click();
@@ -1153,7 +1154,7 @@ test("adds rules from grouped request and response sections", async () => {
 
   try {
     await seedRules(extension.extensionPage, []);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await extension.extensionPage.getByRole("button", { name: "Add response header rule", exact: true }).click();
     await expect(extension.extensionPage.locator(".response-header-rule .header")).toBeFocused();
@@ -1179,7 +1180,7 @@ test("guards against repeated stationary clicks deleting a rule after add autosc
       header: `X-Guarded-Add-${index}`
     }));
     await seedRules(extension.extensionPage, rules);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const originalAddButton = extension.extensionPage
       .locator(".rule-section")
@@ -1247,7 +1248,7 @@ test("updates the active tab label after request and response titles leave the v
       }))
     ];
     await seedRules(extension.extensionPage, rules);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const rulesShell = extension.extensionPage.locator(".rules-shell");
     const headersLabel = extension.extensionPage.locator('[data-tab="headers"] .tab-label');
@@ -1364,7 +1365,7 @@ test("moves the current section add action beside the tabs after its original bu
       }))
     ];
     await seedRules(extension.extensionPage, rules);
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const rulesShell = extension.extensionPage.locator(".rules-shell");
     const stickyAddButton = extension.extensionPage.locator("#sticky-section-add-button");
@@ -1506,7 +1507,7 @@ test("deletes an inactive profile without changing the active profile", async ()
       ],
       "profile-one"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 1);
 
     await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
@@ -1559,7 +1560,7 @@ test("exports and imports selected profiles from the profile menu", async () => 
       ],
       "profile-one"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
     await extension.extensionPage.getByRole("button", { name: "Export" }).click();
@@ -1583,7 +1584,7 @@ test("exports and imports selected profiles from the profile menu", async () => 
       })),
       "full-profile-1"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
 
     const blockedFileChooserPromise = extension.extensionPage.waitForEvent("filechooser");
@@ -1610,7 +1611,7 @@ test("exports and imports selected profiles from the profile menu", async () => 
       ],
       "default"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
 
     const fileChooserPromise = extension.extensionPage.waitForEvent("filechooser");
@@ -1645,7 +1646,7 @@ test("exports and imports selected profiles from the profile menu", async () => 
       ],
       "active-profile-two"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
 
     const activeFileChooserPromise = extension.extensionPage.waitForEvent("filechooser");
@@ -1698,7 +1699,7 @@ test("activates an inactive profile and applies only its rules", async () => {
       ],
       "profile-one"
     );
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 1);
 
     await extension.extensionPage.getByRole("button", { name: "Profiles" }).click();
@@ -1801,7 +1802,7 @@ test("grants website access from the popup and requests rule synchronization", a
       });
       Object.defineProperty(globalThis, "__hostAccessTestState", { value: state });
     });
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const accessControl = extension.extensionPage.locator("#host-access-control");
     const accessTrigger = extension.extensionPage.getByRole("button", { name: "No persistent website access" });
@@ -1847,7 +1848,7 @@ test("keeps rules registered when real-browser website access is unavailable", a
 
     try {
       await seedRules(extension.extensionPage, [requestHeaderRule()]);
-      await extension.extensionPage.reload();
+      await reloadExtensionPage(extension.extensionPage);
 
       await expect(extension.extensionPage.locator("#host-access-control")).toBeVisible();
       await extension.extensionPage.getByRole("button", { name: "No persistent website access" }).click();
@@ -1881,7 +1882,7 @@ test("hides the no-access indicator when no rule is active", async () => {
         value: async () => ({ origins: [] })
       });
     });
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     const accessControl = extension.extensionPage.locator("#host-access-control");
     await expect(accessControl).toBeVisible();
@@ -1907,7 +1908,7 @@ test("treats specific-site access as an intentional configuration", async () => 
         value: async () => ({ origins: ["https://example.com/*"] })
       });
     });
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await expect(extension.extensionPage.locator("#host-access-control")).toBeHidden();
     await expect(extension.extensionPage.locator(".profile-current-badge")).toHaveText("Active");
@@ -2013,6 +2014,9 @@ test("preserves configured profiles and working rules across an extension versio
 
     try {
       expect(upgradedExtension.extensionId).toBe(extensionId);
+      await expect.poll(async () =>
+        (await readStoredRules(upgradedExtension.extensionPage)).schemaVersion
+      ).toBe(5);
       await waitForAppliedRuleCount(upgradedExtension.extensionPage, 4);
 
       const upgradedStorage = await readStoredRules(upgradedExtension.extensionPage);
@@ -2079,7 +2083,7 @@ test("migrates legacy array-based rules into default profile storage", async () 
       })
     ]);
 
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
     await waitForAppliedRuleCount(extension.extensionPage, 1);
 
     const migrated = await readStoredRules(extension.extensionPage);
@@ -2128,7 +2132,7 @@ test("migrates old profiles with no enabled rules to an inactive master toggle",
       })
     ]);
 
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await expect(extension.extensionPage.locator("#global-rules-toggle")).not.toBeChecked();
     await expect(extension.extensionPage.locator("#global-rules-toggle"))
@@ -2152,7 +2156,7 @@ test("remembers the selected popup tab after reopening", async () => {
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
     await expect(extension.extensionPage.getByRole("button", { name: /Cookies/ })).toHaveAttribute("aria-current", "page");
 
-    await extension.extensionPage.reload();
+    await reloadExtensionPage(extension.extensionPage);
 
     await expect(extension.extensionPage.getByRole("button", { name: /Cookies/ })).toHaveAttribute("aria-current", "page");
     await expect(extension.extensionPage.getByText("No rules yet.")).toBeVisible();
