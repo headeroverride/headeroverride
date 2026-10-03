@@ -6,7 +6,9 @@ import { Browser, detectBrowserPlatform, install, resolveBuildId } from "@puppet
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
-const [channel, ...testArgs] = process.argv.slice(2);
+const [channel, ...args] = process.argv.slice(2);
+const headless = args.includes("--headless");
+const testArgs = args.filter((arg) => arg !== "--headless");
 
 function runNode(args, env = process.env) {
   const result = spawnSync(process.execPath, args, { cwd: rootDir, env, stdio: "inherit" });
@@ -20,7 +22,9 @@ function runNode(args, env = process.env) {
 
 try {
   if (!["stable", "beta", "dev"].includes(channel)) {
-    throw new Error("Usage: node scripts/run_chrome_e2e.mjs <stable|beta|dev> [Playwright test arguments]");
+    throw new Error(
+      "Usage: node scripts/run_chrome_e2e.mjs <stable|beta|dev> [--headless] [Playwright test arguments]"
+    );
   }
   const platform = detectBrowserPlatform();
   if (!platform) throw new Error(`Unsupported browser platform: ${process.platform}/${process.arch}`);
@@ -41,7 +45,8 @@ try {
     ...process.env,
     E2E_BROWSER: "chromium",
     E2E_BROWSER_CHANNEL: "",
-    E2E_BROWSER_EXECUTABLE: browser.executablePath
+    E2E_BROWSER_EXECUTABLE: browser.executablePath,
+    E2E_HEADLESS: headless ? "1" : "0"
   });
 } catch (error) {
   console.error(error.message);

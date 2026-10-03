@@ -62,16 +62,22 @@ Run the end-to-end test suite:
 npm run test:e2e
 ```
 
+Run the end-to-end tests in Playwright debug mode:
+
+```sh
+npm run test:e2e -- --debug
+```
+
 Run the unit and end-to-end suites together:
 
 ```sh
 npm test
 ```
 
-Run tests in headed mode:
+Tests run in headed mode by default. To run them headlessly, pass `--headless`:
 
 ```sh
-npm run test:e2e:headed
+npm run test:e2e -- --headless
 ```
 
 Run the suite against the latest available Chrome for Testing Stable, Beta, or Dev:
@@ -82,12 +88,21 @@ npm run test:e2e:beta
 npm run test:e2e:dev
 ```
 
+Pass `--headless` after `--` to run any channel without a visible browser, for
+example `npm run test:e2e:stable -- --headless`.
+
 Each command builds the extension, resolves the latest available version for the
 selected channel, downloads it into `.cache/browsers` if needed, and runs Playwright
 with that executable. The version and executable path are printed before the tests.
 An internet connection is needed to resolve the channel on each run; existing
 downloads are reused. These tests open a visible browser, like the default suite.
 Chrome for Testing supports the unpacked-extension flags used by this harness.
+
+The latest Stable, Beta, and Dev versions are resolved from Chrome for Testing's
+[`last-known-good-versions.json`](https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json)
+metadata. Browser archives are then downloaded from Google's public storage using
+the pattern `https://storage.googleapis.com/chrome-for-testing-public/<version>/<platform>/chrome-<platform>.zip`
+and extracted into `.cache/browsers/chrome/<platform>-<version>`.
 
 Pass Playwright arguments after `--`, for example:
 
