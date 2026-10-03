@@ -54,14 +54,18 @@ export async function launchExtension(options: LaunchExtensionOptions = {}): Pro
   }
 
   const extensionPath = path.resolve(options.extensionPath || path.join(process.cwd(), "extension"));
+  const headless = process.env.E2E_HEADLESS === "1";
   const userDataDir = options.userDataDir
     ? path.resolve(options.userDataDir)
     : fs.mkdtempSync(path.join(os.tmpdir(), "header-override-e2e-"));
   fs.mkdirSync(userDataDir, { recursive: true });
   const context = await chromium.launchPersistentContext(userDataDir, {
     acceptDownloads: true,
-    channel: process.env.E2E_BROWSER_CHANNEL || undefined,
-    headless: false,
+    executablePath: process.env.E2E_BROWSER_EXECUTABLE || undefined,
+    channel: process.env.E2E_BROWSER_EXECUTABLE
+      ? undefined
+      : process.env.E2E_BROWSER_CHANNEL || (headless ? "chromium" : undefined),
+    headless,
     args: [
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`
