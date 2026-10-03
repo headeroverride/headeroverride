@@ -8,12 +8,16 @@ permissions:
 
 jobs:
   e2e:
-    name: Chrome ${{ matrix.channel }}
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }} / Chrome ${{ matrix.channel }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         channel:
           - stable
           - beta
@@ -33,6 +37,7 @@ jobs:
         run: npm ci
 
       - name: Install browser system dependencies
+        if: runner.os == 'Linux'
         run: npx playwright install-deps chromium
 
       - name: Run ${{ matrix.channel }} E2E tests
@@ -42,7 +47,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-results-${{ matrix.channel }}
+          name: playwright-results-${{ matrix.os }}-${{ matrix.channel }}
           path: |
             playwright-report/
             test-results/
