@@ -146,3 +146,11 @@ Generate screenshots and promotional assets from the real extension UI:
 ```sh
 npm run screenshots:generated
 ```
+
+## License
+
+Header Override's source code is licensed under the [MIT License](LICENSE).
+
+The Header Override name, logo, and branding assets in `extension/icons/` are
+not licensed under the MIT License. All rights to those branding elements are
+reserved.
