@@ -1,4 +1,4 @@
-import { isCookieRule, readRule } from "../shared/model.js";
+import { isCookieRule, readRule, ruleKind } from "../shared/model.js";
 
 export function setEveryRuleEnabled(profiles, enabled) {
   return profiles.map((profile) => ({
@@ -37,4 +37,38 @@ export function createRule(kind) {
 
 export function shouldExpandNewRule(rule) {
   return isCookieRule(rule);
+}
+
+export function reorderRulesWithinKind(rules, kind, orderedRuleIds) {
+  const kindIndexes = [];
+  const kindRules = [];
+
+  for (const [index, rule] of rules.entries()) {
+    if (ruleKind(rule) === kind) {
+      kindIndexes.push(index);
+      kindRules.push(rule);
+    }
+  }
+
+  if (kindRules.length !== orderedRuleIds.length) {
+    return rules;
+  }
+
+  const rulesById = new Map(kindRules.map((rule) => [rule.id, rule]));
+  if (rulesById.size !== kindRules.length
+    || orderedRuleIds.some((id) => !rulesById.has(id))
+    || new Set(orderedRuleIds).size !== orderedRuleIds.length) {
+    return rules;
+  }
+
+  if (kindRules.every((rule, index) => rule.id === orderedRuleIds[index])) {
+    return rules;
+  }
+
+  const reorderedRules = [...rules];
+  for (const [index, ruleId] of orderedRuleIds.entries()) {
+    reorderedRules[kindIndexes[index]] = rulesById.get(ruleId);
+  }
+
+  return reorderedRules;
 }

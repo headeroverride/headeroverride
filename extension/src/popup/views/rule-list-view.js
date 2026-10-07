@@ -23,6 +23,7 @@ export function createRuleListView({
   expandedCookieDetails,
   onUpdateRule,
   onDeleteRule,
+  onReorderRules,
   onChangeSort
 }) {
   let rules = [];
@@ -33,7 +34,9 @@ export function createRuleListView({
   let preserveSuppressedPreview = false;
   const updateRule = onUpdateRule;
   const deleteRule = onDeleteRule;
+  const reorderRules = onReorderRules;
   const changeSort = onChangeSort;
+  let dragState = null;
 
   rulesShell.addEventListener("scroll", updateScrolledSectionControls);
   window.addEventListener("resize", updateScrolledSectionControls);
@@ -119,6 +122,8 @@ export function createRuleListView({
     );
     const list = document.createElement("div");
     list.className = "rule-section-list";
+    list.dataset.kind = kind;
+    bindRuleListDragEvents(list, kind);
   
     for (const rule of sectionRules) {
       list.append(isCookieRule(kind) ? renderCookieRule(rule) : renderHeaderRule(rule));
@@ -285,6 +290,7 @@ export function createRuleListView({
     const row = node.querySelector(".header-rule-main");
     const kind = ruleKind(rule);
     const enabled = node.querySelector(".enabled");
+    const dragHandle = node.querySelector(".drag-handle");
     const header = node.querySelector(".header");
     const value = node.querySelector(".value");
     const operationToggle = node.querySelector(".operation-toggle");
@@ -302,6 +308,7 @@ export function createRuleListView({
     setFieldValue(comment, rule.comment || "");
     updateCommentStyle(comment);
     updateHeaderOperation(node, kind, rule.operation);
+    bindDragHandle(node, dragHandle, rule, kind);
   
     enabled?.addEventListener("change", () => {
       updateRule(rule.id, { enabled: enabled.checked });
@@ -337,6 +344,7 @@ export function createRuleListView({
     const kind = ruleKind(rule);
     const row = node.querySelector(".cookie-primary");
     const enabled = node.querySelector(".enabled");
+    const dragHandle = node.querySelector(".drag-handle");
     const name = node.querySelector(".name");
     const value = node.querySelector(".value");
     const operationToggle = node.querySelector(".operation-toggle");
@@ -371,6 +379,7 @@ export function createRuleListView({
     updateCookieDirection(node, rule.id, kind, getControlValue(session, "true"));
     updateCookieOperation(node, kind, rule.operation);
     updateCommentStyle(comment);
+    bindDragHandle(node, dragHandle, rule, kind);
   
     enabled?.addEventListener("change", () => {
       updateRule(rule.id, { enabled: enabled.checked });
@@ -428,6 +437,145 @@ export function createRuleListView({
     deleteButton?.addEventListener("click", (event) => deleteRule(rule.id, event));
   
     return node;
+  }
+
+  function bindDragHandle(node, handle, rule, kind) {
+    if (!handle) {
+      return;
+    }
+
+    const reorderDisabled = Boolean(sortByKind[kind]);
+    handle.hidden = reorderDisabled;
+    handle.disabled = reorderDisabled;
+    handle.draggable = !reorderDisabled;
+    if (reorderDisabled) {
+      handle.removeAttribute("title");
+      handle.removeAttribute("aria-label");
+    } else {
+      handle.title = "Drag to reorder rule";
+      handle.setAttribute("aria-label", handle.title);
+    }
+
+    handle.addEventListener("dragstart", (event) => {
+      if (reorderDisabled || !event.dataTransfer) {
+        event.preventDefault();
+        return;
+      }
+
+      const list = node.closest(".rule-section-list");
+      const sourceIds = getRuleIds(list);
+      dragState = {
+        kind,
+        ruleId: rule.id,
+        sourceIds,
+        insertionIndex: sourceIds.indexOf(rule.id)
+      };
+      node.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", rule.id);
+    });
+
+    handle.addEventListener("dragend", clearDragState);
+  }
+
+  function bindRuleListDragEvents(list, kind) {
+    list.addEventListener("dragover", (event) => {
+      if (!dragState || dragState.kind !== kind || sortByKind[kind]) {
+        return;
+      }
+
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+      }
+
+      dragState.insertionIndex = getInsertionIndex(list, event.clientY, dragState.ruleId);
+      showDropIndicator(list, dragState.insertionIndex, dragState.ruleId);
+      scrollRulesShellDuringDrag(event.clientY);
+    });
+
+    list.addEventListener("dragleave", (event) => {
+      const relatedTarget = event.relatedTarget;
+      if (!(relatedTarget instanceof Node) || !list.contains(relatedTarget)) {
+        clearDropIndicators();
+      }
+    });
+
+    list.addEventListener("drop", (event) => {
+      if (!dragState || dragState.kind !== kind || sortByKind[kind]) {
+        return;
+      }
+
+      event.preventDefault();
+      const { ruleId, sourceIds, insertionIndex } = dragState;
+      const nextIds = sourceIds.filter((id) => id !== ruleId);
+      nextIds.splice(insertionIndex, 0, ruleId);
+      const changed = nextIds.some((id, index) => id !== sourceIds[index]);
+      clearDragState();
+
+      if (changed) {
+        reorderRules(kind, nextIds);
+      }
+    });
+  }
+
+  function getInsertionIndex(list, pointerY, draggedRuleId) {
+    const remainingRules = Array.from(list.querySelectorAll(".rule"))
+      .filter((node) => node.dataset.ruleId !== draggedRuleId);
+
+    for (const [index, node] of remainingRules.entries()) {
+      const rect = node.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        return index;
+      }
+    }
+
+    return remainingRules.length;
+  }
+
+  function showDropIndicator(list, insertionIndex, draggedRuleId) {
+    clearDropIndicators();
+    const remainingRules = Array.from(list.querySelectorAll(".rule"))
+      .filter((node) => node.dataset.ruleId !== draggedRuleId);
+
+    if (remainingRules.length === 0) {
+      return;
+    }
+
+    if (insertionIndex >= remainingRules.length) {
+      remainingRules.at(-1).classList.add("drop-after");
+    } else {
+      remainingRules[insertionIndex].classList.add("drop-before");
+    }
+  }
+
+  function scrollRulesShellDuringDrag(pointerY) {
+    const rect = rulesShell.getBoundingClientRect();
+    const edgeSize = 28;
+
+    if (pointerY < rect.top + edgeSize) {
+      rulesShell.scrollTop -= 12;
+    } else if (pointerY > rect.bottom - edgeSize) {
+      rulesShell.scrollTop += 12;
+    }
+  }
+
+  function getRuleIds(list) {
+    return Array.from(list?.querySelectorAll(".rule") || [], (node) => node.dataset.ruleId);
+  }
+
+  function clearDropIndicators() {
+    for (const node of rulesContainer.querySelectorAll(".drop-before, .drop-after")) {
+      node.classList.remove("drop-before", "drop-after");
+    }
+  }
+
+  function clearDragState() {
+    clearDropIndicators();
+    for (const node of rulesContainer.querySelectorAll(".dragging")) {
+      node.classList.remove("dragging");
+    }
+    dragState = null;
   }
   
   function bindEnabledColumnToggle(row, enabled, onToggle) {
