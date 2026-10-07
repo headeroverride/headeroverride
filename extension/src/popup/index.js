@@ -30,6 +30,7 @@ import {
 import {
   captureRuleStates,
   createRule,
+  reorderRulesWithinKind,
   restoreRuleStates,
   setEveryRuleEnabled,
   shouldExpandNewRule
@@ -86,6 +87,7 @@ const ruleListView = createRuleListView({
   expandedCookieDetails,
   onUpdateRule: updateRule,
   onDeleteRule: deleteRule,
+  onReorderRules: reorderRules,
   onChangeSort: changeSectionSort
 });
 let isAddingProfile = false;
@@ -844,6 +846,19 @@ function deleteRule(id, event) {
     rulesEnabled = false;
     masterToggleSnapshot = null;
   }
+  render();
+  saveNow();
+}
+
+function reorderRules(kind, orderedRuleIds) {
+  const reorderedRules = reorderRulesWithinKind(rules, kind, orderedRuleIds);
+
+  if (reorderedRules === rules) {
+    return;
+  }
+
+  rules = reorderedRules;
+  updateViewedProfileRules(rules);
   render();
   saveNow();
 }

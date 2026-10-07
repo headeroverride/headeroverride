@@ -964,6 +964,11 @@ h1 {
   align-items: center;
 }
 
+.header-rule-main,
+.cookie-primary {
+  position: relative;
+}
+
 .rules-head {
   padding: 0 6px 6px 10px;
   border-bottom: 1px solid var(--line);
@@ -1203,12 +1208,74 @@ h1 {
 }
 
 .rule {
+  position: relative;
   min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--rule-shadow);
+}
+
+.drag-handle {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  display: grid;
+  place-items: center;
+  width: 10px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: grab;
+  user-select: none;
+}
+
+.drag-handle:hover,
+.drag-handle:focus-visible {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle:disabled {
+  color: var(--line);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.rule.dragging {
+  opacity: 0.48;
+}
+
+.rule.drop-before::before,
+.rule.drop-after::after {
+  position: absolute;
+  z-index: 2;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  content: "";
+  pointer-events: none;
+}
+
+.rule.drop-before::before {
+  top: -5px;
+}
+
+.rule.drop-after::after {
+  bottom: -5px;
 }
 
 .cookie-rule {
