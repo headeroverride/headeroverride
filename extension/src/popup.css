@@ -110,10 +110,40 @@ select {
 
 .app {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100vh;
-  padding: 12px;
+  padding: 12px 12px 1px;
   overflow: hidden;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.about-link svg {
+  flex: 0 0 auto;
+}
+
+.about-link:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+.about-link:focus-visible {
+  outline: 2px solid var(--accent-dark);
+  outline-offset: 3px;
 }
 
 .toolbar {
