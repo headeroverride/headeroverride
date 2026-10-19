@@ -5,6 +5,7 @@ import {
   validHeaderName
 } from "../../shared/model.js";
 import { sortRulesForSection } from "../sorting.js";
+import { createUrlFilterView } from "./url-filter-view.js";
 
 const TAB_LABELS = {
   headers: "Headers",
@@ -18,6 +19,7 @@ export function createRuleListView({
   headerTemplate,
   cookieTemplate,
   urlHelpTemplate,
+  urlFilterPopoverTemplate,
   tabs,
   countNodes,
   expandedCookieDetails,
@@ -37,6 +39,16 @@ export function createRuleListView({
   const reorderRules = onReorderRules;
   const changeSort = onChangeSort;
   let dragState = null;
+  const urlFilterView = createUrlFilterView({
+    rulesContainer,
+    rulesShell,
+    helpTemplate: urlHelpTemplate,
+    popoverTemplate: urlFilterPopoverTemplate,
+    getRule: (id) => rules.find((rule) => rule.id === id),
+    onUpdateRule: updateRule,
+    onCommit: (kind) => refreshSortedSection(kind, "urlFilter"),
+    onCloseHelp: closeUrlFilterHelp
+  });
 
   rulesShell.addEventListener("scroll", updateScrolledSectionControls);
   window.addEventListener("resize", updateScrolledSectionControls);
@@ -64,6 +76,7 @@ export function createRuleListView({
   }
   
   function renderRules() {
+    urlFilterView.reset();
     rulesContainer.textContent = "";
   
     const visibleKinds = getActiveTabKinds();
@@ -278,8 +291,8 @@ export function createRuleListView({
     appendSortHead(head, kind, "enabled", "On");
     appendSortHead(head, kind, isCookieRule(kind) ? "name" : "header", isCookieRule(kind) ? "Name" : "Header");
     appendSortHead(head, kind, "value", "Value");
-    appendUrlSortHead(head, kind);
     appendSortHead(head, kind, "comment", "Comment");
+    appendSortHead(head, kind, "urlFilter", "URL");
     appendHeadText(head, "");
   
     return head;
@@ -294,7 +307,6 @@ export function createRuleListView({
     const header = node.querySelector(".header");
     const value = node.querySelector(".value");
     const operationToggle = node.querySelector(".operation-toggle");
-    const urlFilter = node.querySelector(".url-filter");
     const comment = node.querySelector(".comment");
     const deleteButton = node.querySelector(".delete");
 
@@ -304,11 +316,11 @@ export function createRuleListView({
     setFieldChecked(enabled, Boolean(rule.enabled));
     setFieldValue(header, rule.header || "");
     setFieldValue(value, rule.value || "");
-    setFieldValue(urlFilter, rule.urlFilter || "|http*");
     setFieldValue(comment, rule.comment || "");
     updateCommentStyle(comment);
     updateHeaderOperation(node, kind, rule.operation);
     bindDragHandle(node, dragHandle, rule, kind);
+    urlFilterView.bindTrigger(node, rule);
   
     enabled?.addEventListener("change", () => {
       updateRule(rule.id, { enabled: enabled.checked });
@@ -325,14 +337,12 @@ export function createRuleListView({
       updateRule(rule.id, { operation });
       updateHeaderOperation(node, kind, operation);
     });
-    urlFilter?.addEventListener("input", () => updateRule(rule.id, { urlFilter: urlFilter.value }));
     comment?.addEventListener("input", () => {
       updateCommentStyle(comment);
       updateRule(rule.id, { comment: comment.value });
     });
     bindSortCommit(header, kind, "header");
     bindSortCommit(value, kind, "value");
-    bindSortCommit(urlFilter, kind, "urlFilter");
     bindSortCommit(comment, kind, "comment");
     deleteButton?.addEventListener("click", (event) => deleteRule(rule.id, event));
   
@@ -349,8 +359,6 @@ export function createRuleListView({
     const value = node.querySelector(".value");
     const operationToggle = node.querySelector(".operation-toggle");
     const comment = node.querySelector(".comment");
-    const urlFilterColumn = node.querySelector(".cookie-url-filter");
-    const requestUrlFilter = node.querySelector(".cookie-request-fields .url-filter");
     const domain = node.querySelector(".cookie-response-fields .domain");
     const path = node.querySelector(".cookie-response-fields .path");
     const secure = node.querySelector(".cookie-response-fields .secure");
@@ -368,8 +376,6 @@ export function createRuleListView({
     setFieldValue(name, rule.name || "");
     setFieldValue(value, rule.value || "");
     setFieldValue(comment, rule.comment || "");
-    setFieldValue(urlFilterColumn, rule.urlFilter || "|http*");
-    setFieldValue(requestUrlFilter, rule.urlFilter || "|http*");
     setFieldValue(domain, rule.domain || "");
     setFieldValue(path, rule.path || "");
     setFieldChecked(secure, Boolean(rule.secure));
@@ -380,6 +386,7 @@ export function createRuleListView({
     updateCookieOperation(node, kind, rule.operation);
     updateCommentStyle(comment);
     bindDragHandle(node, dragHandle, rule, kind);
+    urlFilterView.bindTrigger(node, rule);
   
     enabled?.addEventListener("change", () => {
       updateRule(rule.id, { enabled: enabled.checked });
@@ -400,14 +407,6 @@ export function createRuleListView({
       updateCommentStyle(comment);
       updateRule(rule.id, { comment: comment.value });
     });
-    urlFilterColumn?.addEventListener("input", () => {
-      setFieldValue(requestUrlFilter, urlFilterColumn.value);
-      updateRule(rule.id, { urlFilter: urlFilterColumn.value });
-    });
-    requestUrlFilter?.addEventListener("input", () => {
-      setFieldValue(urlFilterColumn, requestUrlFilter.value);
-      updateRule(rule.id, { urlFilter: requestUrlFilter.value });
-    });
     domain?.addEventListener("input", () => updateRule(rule.id, { domain: domain.value }));
     path?.addEventListener("input", () => updateRule(rule.id, { path: path.value }));
     secure?.addEventListener("change", () => updateRule(rule.id, { secure: secure.checked }));
@@ -419,8 +418,6 @@ export function createRuleListView({
     maxAge?.addEventListener("input", () => updateRule(rule.id, { maxAge: maxAge.value }));
     bindSortCommit(name, kind, "name");
     bindSortCommit(value, kind, "value");
-    bindSortCommit(urlFilterColumn, kind, "urlFilter");
-    bindSortCommit(requestUrlFilter, kind, "urlFilter");
     bindSortCommit(comment, kind, "comment");
     for (const toggle of detailToggles) {
       toggle.addEventListener("click", () => {
@@ -689,26 +686,20 @@ export function createRuleListView({
   
   function updateCookieDirection(node, ruleId, kind, sessionValue) {
     const isRequest = kind === "requestCookie";
-    const requestFields = node.querySelector(".cookie-request-fields");
     const responseFields = node.querySelector(".cookie-response-fields");
     const maxAge = node.querySelector(".cookie-response-fields .max-age");
     const maxAgeField = maxAge?.closest(".detail-field");
     const isDeleteOperation = getCookieOperation({ operation: node.dataset.operation }) === "delete";
   
-    if (!requestFields || !responseFields) {
+    if (!responseFields) {
       return;
     }
   
-    const activeFields = isRequest ? requestFields : responseFields;
-    const inactiveFields = isRequest ? responseFields : requestFields;
     const isExpanded = expandedCookieDetails.has(ruleId);
-    const activeSummary = activeFields?.querySelector(".detail-summary");
-    const activeSummaryText = activeFields?.querySelector(".detail-summary-text");
-    const activeEditor = activeFields?.querySelector(".detail-editor");
-    const inactiveSummary = inactiveFields?.querySelector(".detail-summary");
-    const inactiveEditor = inactiveFields?.querySelector(".detail-editor");
+    const activeSummary = responseFields.querySelector(".detail-summary");
+    const activeSummaryText = responseFields.querySelector(".detail-summary-text");
+    const activeEditor = responseFields.querySelector(".detail-editor");
   
-    requestFields.hidden = true;
     responseFields.hidden = isRequest;
     if (maxAgeField) {
       maxAgeField.hidden = isDeleteOperation || sessionValue !== "false";
@@ -724,12 +715,6 @@ export function createRuleListView({
     if (activeEditor) {
       activeEditor.hidden = !isExpanded;
     }
-    if (inactiveSummary) {
-      inactiveSummary.hidden = true;
-    }
-    if (inactiveEditor) {
-      inactiveEditor.hidden = true;
-    }
     if (activeSummaryText) {
       activeSummaryText.textContent = getResponseCookieSummary(node);
     }
@@ -744,25 +729,6 @@ export function createRuleListView({
   function appendSortHead(target, kind, field, label) {
     const node = document.createElement("span");
     configureSortHead(node, kind, field, label);
-    target.append(node);
-  }
-
-  function appendUrlSortHead(target, kind) {
-    const node = urlHelpTemplate.content.firstElementChild.cloneNode(true);
-    const button = node.querySelector(".help-tip");
-    const panel = node.querySelector(".help-panel");
-    const id = `url-filter-help-${kind}`;
-  
-    configureSortHead(node, kind, "urlFilter", "URL");
-    panel.id = id;
-    button.setAttribute("aria-controls", id);
-    button.addEventListener("click", () => {
-      const isOpen = !panel.classList.contains("is-open");
-      closeUrlFilterHelp();
-      panel.classList.toggle("is-open", isOpen);
-      button.setAttribute("aria-expanded", String(isOpen));
-    });
-  
     target.append(node);
   }
 
@@ -830,7 +796,7 @@ export function createRuleListView({
       renderRules();
     }
   }
-  
+
   function getResponseCookieSummary(node) {
     const fields = node.querySelector(".cookie-response-fields");
     return getStructuredCookieSummary({
@@ -928,6 +894,7 @@ export function createRuleListView({
   }
   
   function closeUrlFilterHelp() {
+    urlFilterView.closeHelp();
     for (const panel of document.querySelectorAll(".help-panel")) {
       panel.classList.remove("is-open");
     }

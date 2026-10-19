@@ -20,8 +20,8 @@ function section(page: Page, name: "Request" | "Response") {
 }
 
 async function values(target: Locator, selector: string) {
-  return target.locator(selector).evaluateAll((inputs) => inputs.map((input) =>
-    input instanceof HTMLInputElement ? input.value : ""
+  return target.locator(selector).evaluateAll((controls) => controls.map((control) =>
+    control instanceof HTMLInputElement ? control.value : control.getAttribute("title") || ""
   ));
 }
 
@@ -147,7 +147,7 @@ test("sorts every visible column independently and clears back to stored order",
     for (const [label, selector, ascending] of [
       ["Header", ".header", ["X-Alpha-2", "X-Bravo-10"]],
       ["Value", ".value", ["3", "20"]],
-      ["URL", ".url-filter", ["*a.example*", "*z.example*"]],
+      ["URL", ".url-filter-trigger", ["URL filter: *a.example*", "URL filter: *z.example*"]],
       ["Comment", ".comment", ["first", "second"]]
     ] as const) {
       await clickSort(request, label);

@@ -142,6 +142,26 @@
       </span>
     </template>
 
+    <template id="url-filter-popover-template">
+      <div class="url-filter-popover" role="dialog" aria-label="URL filter" hidden>
+        <div class="url-filter-popover-title">
+          <label>URL filter</label>
+          <span class="url-filter-help-slot"></span>
+          <button class="url-filter-close" type="button" aria-label="Close URL filter">×</button>
+        </div>
+        <div class="url-filter-options" role="group" aria-label="URL scope">
+          <button type="button" data-url-scope="all" aria-pressed="false">All websites</button>
+          <button type="button" data-url-scope="custom" aria-pressed="false">Custom URL</button>
+        </div>
+        <div class="url-filter-editor-row">
+          <div class="url-filter-custom">
+            <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter" spellcheck="false" autocomplete="off">
+          </div>
+          <button class="url-filter-done" type="button">Done</button>
+        </div>
+      </div>
+    </template>
+
     <template id="header-rule-template">
       <article class="rule header-rule">
         <div class="rule-main header-rule-main">
@@ -154,8 +174,12 @@
           <span class="value-shell">
             <input class="value" type="text" placeholder="Value" title="Value" aria-label="Value">
           </span>
-          <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
           <input class="comment" type="text" placeholder="Comment" title="Comment" aria-label="Comment">
+          <button class="url-filter-trigger" type="button" title="URL filter" aria-label="URL filter" aria-haspopup="dialog" aria-expanded="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M4 5h16l-6.5 7.5V19l-3-1.5v-5L4 5Z"/>
+            </svg>
+          </button>
           <button class="delete icon-button" title="Delete rule" aria-label="Delete rule">x</button>
         </div>
       </article>
@@ -173,25 +197,13 @@
           <span class="value-shell">
             <input class="value" type="text" placeholder="Value" title="Cookie value" aria-label="Cookie value">
           </span>
-          <input class="cookie-url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
           <input class="comment" type="text" placeholder="Comment" title="Comment" aria-label="Comment">
+          <button class="url-filter-trigger" type="button" title="URL filter" aria-label="URL filter" aria-haspopup="dialog" aria-expanded="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M4 5h16l-6.5 7.5V19l-3-1.5v-5L4 5Z"/>
+            </svg>
+          </button>
           <button class="delete icon-button" title="Delete rule" aria-label="Delete rule">x</button>
-        </div>
-        <div class="cookie-row cookie-request-fields">
-          <span></span>
-          <div class="cookie-detail-shell">
-            <div class="detail-summary">
-              <button class="detail-toggle" type="button">Edit</button>
-              <span class="detail-summary-text"></span>
-            </div>
-            <div class="cookie-details detail-editor">
-              <button class="detail-done" type="button">Done</button>
-              <label class="detail-field detail-field-wide">
-                <span>URL filter</span>
-                <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter">
-              </label>
-            </div>
-          </div>
         </div>
         <div class="cookie-row cookie-response-fields">
           <span></span>
