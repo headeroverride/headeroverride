@@ -42,6 +42,7 @@ const rulesContainer = document.querySelector("#rules");
 const headerTemplate = document.querySelector("#header-rule-template");
 const cookieTemplate = document.querySelector("#cookie-rule-template");
 const urlHelpTemplate = document.querySelector("#url-help-template");
+const urlFilterPopoverTemplate = document.querySelector("#url-filter-popover-template");
 const profileMenuButton = document.querySelector("#profile-menu-button");
 const profileMenu = document.querySelector("#profile-menu");
 const profileCurrent = document.querySelector("#profile-current");
@@ -82,6 +83,7 @@ const ruleListView = createRuleListView({
   headerTemplate,
   cookieTemplate,
   urlHelpTemplate,
+  urlFilterPopoverTemplate,
   tabs,
   countNodes,
   expandedCookieDetails,
@@ -352,7 +354,7 @@ for (const tab of tabs) {
 }
 
 document.addEventListener("pointerdown", (event) => {
-  if (!event.target.closest(".url-heading")) {
+  if (!event.target.closest(".url-heading, .section-help, .help-panel")) {
     ruleListView.closeHelp();
   }
 

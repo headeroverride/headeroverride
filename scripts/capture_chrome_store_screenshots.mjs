@@ -8,6 +8,8 @@ const extensionDir = path.join(rootDir, "extension");
 const outputDir = path.resolve(process.argv[2] || path.join(rootDir, "assets", "generated"));
 const storageKey = "headerOverrideRules";
 const popupStateKey = "headerOverridePopupState";
+// Keep enough source pixels for the enlarged popup and the 1.78× profile zoom.
+const captureScale = 3;
 
 const profiles = [
   {
@@ -94,6 +96,7 @@ async function main() {
   const context = await chromium.launchPersistentContext(userDataDir, {
     acceptDownloads: false,
     colorScheme: "light",
+    deviceScaleFactor: captureScale,
     headless: false,
     args: [
       `--disable-extensions-except=${extensionDir}`,
@@ -107,6 +110,7 @@ async function main() {
     const popupPage = await context.newPage();
     await popupPage.setViewportSize({ width: 760, height: 520 });
     await popupPage.goto(`chrome-extension://${extensionId}/build/popup.html`);
+    await popupPage.locator(".rule-section").first().waitFor({ state: "visible" });
     await seedPopup(popupPage, "headers");
 
     await popupPage.screenshot({
@@ -121,29 +125,34 @@ async function main() {
     ]) {
       await popupPage.screenshot({
         path: path.join(outputDir, `guide-${guideSlug}.png`),
+        scale: "css",
         animations: "disabled"
       });
     }
 
     await popupPage.getByRole("button", { name: /Cookies/ }).click();
-    await popupPage.getByRole("button", { name: "Edit" }).last().click();
+    await popupPage.getByRole("button", { name: "Edit", exact: true }).click();
     await popupPage.screenshot({
       path: path.join(captureDir, "popup-cookies.png"),
       animations: "disabled"
     });
     await popupPage.screenshot({
       path: path.join(outputDir, "guide-auth-cookie.png"),
+      scale: "css",
       animations: "disabled"
     });
 
     await popupPage.getByRole("button", { name: /Headers/ }).click();
-    await popupPage.getByRole("button", { name: "URL filter syntax examples" }).first().click();
+    await popupPage.getByRole("button", { name: /^Edit URL filter for Authorization:/ }).click();
+    const urlFilterPopover = popupPage.getByRole("dialog", { name: "URL filter for Authorization", exact: true });
+    await urlFilterPopover.waitFor({ state: "visible" });
+    await popupPage.mouse.move(0, 0);
     await popupPage.screenshot({
-      path: path.join(captureDir, "popup-url-filter-help.png"),
+      path: path.join(captureDir, "popup-url-filter.png"),
       animations: "disabled"
     });
 
-    await popupPage.keyboard.press("Escape");
+    await urlFilterPopover.getByRole("button", { name: "Close URL filter", exact: true }).click();
     await popupPage.getByRole("button", { name: "Profiles" }).click();
     await popupPage.screenshot({
       path: path.join(captureDir, "popup-profiles.png"),
@@ -151,6 +160,7 @@ async function main() {
     });
     await popupPage.screenshot({
       path: path.join(outputDir, "guide-staging-profiles.png"),
+      scale: "css",
       animations: "disabled"
     });
 
@@ -192,6 +202,7 @@ async function seedPopup(page, activeTab) {
     }
   );
   await page.reload({ waitUntil: "load" });
+  await page.locator(".rule-section").first().waitFor({ state: "visible" });
 }
 
 async function renderFeatureScreenshots(context, captureDir) {
@@ -212,7 +223,7 @@ async function renderFeatureScreenshots(context, captureDir) {
     },
     {
       slug: "url-filters",
-      capture: "popup-url-filter-help.png",
+      capture: "popup-url-filter.png",
       title: "Precise URL matching",
       body: "Use simple wildcard and anchored filters to keep every override limited to the pages and APIs you intend.",
       accent: "URL filters"
@@ -239,10 +250,11 @@ async function renderFeatureScreenshots(context, captureDir) {
 
   for (const feature of features) {
     const imageData = await fs.readFile(path.join(captureDir, feature.capture), "base64");
-    const iconData = await fs.readFile(path.join(extensionDir, "icons", "icon-32.png"), "base64");
+    const iconData = await fs.readFile(path.join(extensionDir, "icons", "icon-128.png"), "base64");
     await page.setContent(featureScreenshotHtml({ ...feature, imageData, iconData }), { waitUntil: "load" });
     await page.screenshot({
       path: path.join(outputDir, `feature-${feature.slug}-1280x800.png`),
+      scale: "css",
       animations: "disabled"
     });
   }
@@ -258,6 +270,7 @@ async function renderProfileDropdownZoom(context, captureDir) {
   await page.setContent(profileDropdownZoomHtml({ imageData }), { waitUntil: "load" });
   await page.screenshot({
     path: path.join(outputDir, "profile-dropdown-zoom.png"),
+    scale: "css",
     animations: "disabled"
   });
   await page.close();
@@ -272,6 +285,7 @@ async function renderMarqueePromoTile(context, captureDir) {
   await page.setContent(marqueePromoTileHtml({ imageData, iconData }), { waitUntil: "load" });
   await page.screenshot({
     path: path.join(outputDir, "marquee-1400x560.png"),
+    scale: "css",
     animations: "disabled",
     omitBackground: false
   });
@@ -374,11 +388,15 @@ function marqueePromoTileHtml({ imageData, iconData }) {
       }
 
       .browser {
+        --toolbar-height: 44px;
+        --toolbar-inset: 12px;
+        --address-height: 28px;
+        --extension-size: 28px;
         position: absolute;
         right: 76px;
-        top: 54px;
+        top: 28px;
         width: 720px;
-        height: 452px;
+        height: 504px;
         overflow: hidden;
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -390,8 +408,8 @@ function marqueePromoTileHtml({ imageData, iconData }) {
         display: flex;
         align-items: center;
         gap: 8px;
-        height: 44px;
-        padding: 8px 12px;
+        height: var(--toolbar-height);
+        padding: 8px var(--toolbar-inset);
         border-bottom: 1px solid var(--line);
       }
 
@@ -409,7 +427,7 @@ function marqueePromoTileHtml({ imageData, iconData }) {
         display: flex;
         align-items: center;
         min-width: 0;
-        height: 28px;
+        height: var(--address-height);
         flex: 1;
         margin-left: 7px;
         padding: 0 10px;
@@ -423,9 +441,10 @@ function marqueePromoTileHtml({ imageData, iconData }) {
       .toolbar-icon {
         position: relative;
         display: grid;
+        flex: 0 0 var(--extension-size);
         place-items: center;
-        width: 28px;
-        height: 28px;
+        width: var(--extension-size);
+        height: var(--extension-size);
         border: 1px solid rgba(11, 122, 117, 0.24);
         border-radius: 999px;
         background: rgba(11, 122, 117, 0.08);
@@ -456,20 +475,17 @@ function marqueePromoTileHtml({ imageData, iconData }) {
 
       .popup {
         position: absolute;
-        right: 14px;
-        top: 44px;
+        right: var(--toolbar-inset);
+        top: calc((var(--toolbar-height) - 1px + var(--address-height)) / 2);
         width: 640px;
-        height: 438px;
-        overflow: hidden;
         border: 1px solid #cbd5e1;
-        border-radius: 8px;
         background: #f7f8fb;
         box-shadow: 0 20px 54px rgba(15, 23, 42, 0.2);
       }
 
       .popup img {
         display: block;
-        width: 640px;
+        width: 100%;
         height: auto;
       }
     </style>
@@ -496,7 +512,7 @@ function marqueePromoTileHtml({ imageData, iconData }) {
           <span class="dot yellow"></span>
           <span class="dot green"></span>
           <div class="address">https://api.example.com/debug-session</div>
-          <div class="toolbar-icon">
+          <div class="toolbar-icon" aria-label="Pinned Header Override extension with popup open">
             <img src="data:image/png;base64,${iconData}" alt="">
             <span class="toolbar-badge">4</span>
           </div>
@@ -639,6 +655,10 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
       }
 
       .browser {
+        --toolbar-height: 58px;
+        --toolbar-inset: 16px;
+        --address-height: 34px;
+        --extension-size: 34px;
         position: absolute;
         inset: 44px 42px 42px;
         border: 1px solid var(--line);
@@ -652,8 +672,8 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
         display: flex;
         align-items: center;
         gap: 10px;
-        height: 58px;
-        padding: 10px 16px;
+        height: var(--toolbar-height);
+        padding: 10px var(--toolbar-inset);
         border-bottom: 1px solid var(--line);
         background: #fff;
       }
@@ -672,7 +692,7 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
         display: flex;
         align-items: center;
         min-width: 0;
-        height: 34px;
+        height: var(--address-height);
         flex: 1;
         margin-left: 8px;
         padding: 0 13px;
@@ -686,9 +706,10 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
       .toolbar-icon {
         position: relative;
         display: grid;
+        flex: 0 0 var(--extension-size);
         place-items: center;
-        width: 34px;
-        height: 34px;
+        width: var(--extension-size);
+        height: var(--extension-size);
         border: 1px solid rgba(11, 122, 117, 0.24);
         border-radius: 999px;
         background: rgba(11, 122, 117, 0.08);
@@ -718,7 +739,7 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
       }
 
       .page {
-        height: calc(100% - 58px);
+        height: calc(100% - var(--toolbar-height));
         padding: 90px 48px;
         background:
           linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0 34%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%),
@@ -727,35 +748,18 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
 
       .popup-anchor {
         position: absolute;
-        top: 74px;
-        right: 24px;
+        top: calc((var(--toolbar-height) - 1px + var(--address-height)) / 2);
+        right: var(--toolbar-inset);
         width: 900px;
-        height: 636px;
-        overflow: hidden;
         border: 1px solid #cbd5e1;
-        border-radius: 8px;
         background: #f7f8fb;
         box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
       }
 
-      .popup-anchor::before {
-        position: absolute;
-        z-index: 2;
-        top: -8px;
-        right: 17px;
-        width: 16px;
-        height: 16px;
-        border-top: 1px solid #cbd5e1;
-        border-left: 1px solid #cbd5e1;
-        background: #f7f8fb;
-        transform: rotate(45deg);
-        content: "";
-      }
-
       .popup-anchor img {
         display: block;
-        width: 900px;
-        height: 636px;
+        width: 100%;
+        height: auto;
       }
 
       ${theme === "dark" ? `
@@ -813,10 +817,6 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
         box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
       }
 
-      .popup-anchor::before {
-        border-color: #46515f;
-        background: #11161d;
-      }
       ` : ""}
     </style>
   </head>
@@ -828,7 +828,7 @@ function featureScreenshotHtml({ title, body, accent, imageData, iconData, theme
           <span class="dot yellow"></span>
           <span class="dot green"></span>
           <div class="address">https://api.example.com/debug-session</div>
-          <div class="toolbar-icon">
+          <div class="toolbar-icon" aria-label="Pinned Header Override extension with popup open">
             <img src="data:image/png;base64,${iconData}" alt="">
               <span class="toolbar-badge">4</span>
           </div>

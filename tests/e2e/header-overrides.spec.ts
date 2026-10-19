@@ -966,7 +966,9 @@ test("shows every rule-list column heading for headers and cookies", async () =>
       });
       const headingRow = section.locator(".rules-head");
 
-      for (const label of ["On", "Header", "Value", "URL", "Comment"]) {
+      await expect(headingRow.locator(".sort-button > span:first-child"))
+        .toHaveText(["On", "Header", "Value", "Comment", "URL"]);
+      for (const label of ["On", "Header", "Value", "Comment", "URL"]) {
         await expect(headingRow.getByText(label, { exact: true })).toBeVisible();
       }
     }
@@ -979,7 +981,9 @@ test("shows every rule-list column heading for headers and cookies", async () =>
       });
       const headingRow = section.locator(".rules-head");
 
-      for (const label of ["On", "Name", "Value", "URL", "Comment"]) {
+      await expect(headingRow.locator(".sort-button > span:first-child"))
+        .toHaveText(["On", "Name", "Value", "Comment", "URL"]);
+      for (const label of ["On", "Name", "Value", "Comment", "URL"]) {
         await expect(headingRow.getByText(label, { exact: true })).toBeVisible();
       }
     }
@@ -1120,7 +1124,7 @@ test("defaults new response cookie SameSite selections to Lax", async () => {
     await reloadExtensionPage(extension.extensionPage);
 
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
-    await extension.extensionPage.getByRole("button", { name: "Edit" }).click();
+    await extension.extensionPage.getByRole("button", { name: "Edit", exact: true }).click();
 
     await expect(extension.extensionPage.getByLabel("SameSite")).toHaveValue("lax");
 
@@ -1140,7 +1144,7 @@ test("aligns new session response cookie fields with existing editors", async ()
     await reloadExtensionPage(extension.extensionPage);
 
     await extension.extensionPage.getByRole("button", { name: /Cookies/ }).click();
-    await extension.extensionPage.getByRole("button", { name: "Edit" }).click();
+    await extension.extensionPage.getByRole("button", { name: "Edit", exact: true }).click();
     await extension.extensionPage.getByRole("button", { name: "Add response cookie rule", exact: true }).click();
 
     const responseCookieRules = extension.extensionPage.locator(".response-cookie-rule");
