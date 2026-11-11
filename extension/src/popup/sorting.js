@@ -110,8 +110,8 @@ function compareFieldValues(leftRule, rightRule, field, direction) {
     return direction === "desc" ? -comparison : comparison;
   }
 
-  const left = String(leftRule[field] ?? "").trim();
-  const right = String(rightRule[field] ?? "").trim();
+  const left = String(field === "urlFilter" ? leftRule.regexFilter || leftRule.urlFilter || "" : leftRule[field] ?? "").trim();
+  const right = String(field === "urlFilter" ? rightRule.regexFilter || rightRule.urlFilter || "" : rightRule[field] ?? "").trim();
   const leftEmpty = left.length === 0;
   const rightEmpty = right.length === 0;
 

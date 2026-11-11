@@ -1115,6 +1115,60 @@ test("applies configured rules only when the URL filter matches", async () => {
   }
 });
 
+test("applies regex request header and cookie rules only to matching requests", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const regexFilter = "^http://127\\.0\\.0\\.1:[0-9]+/regex/v[0-9]+/echo$";
+    await seedRules(extension.extensionPage, [
+      requestHeaderRule({ header: "X-E2E-Regex-Request", value: "matched", regexFilter }),
+      requestCookieRule({ name: "e2e_regex_request_cookie", value: "matched", regexFilter })
+    ]);
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const unmatched = await page.evaluate(async () => (await fetch("/regex/vX/echo")).json());
+    const matched = await page.evaluate(async () => (await fetch("/regex/v2/echo")).json());
+    expect(unmatched.headers["x-e2e-regex-request"]).toBeUndefined();
+    expect(unmatched.headers.cookie || "").not.toContain("e2e_regex_request_cookie=matched");
+    expect(matched.headers["x-e2e-regex-request"]).toBe("matched");
+    expect(matched.headers.cookie).toContain("e2e_regex_request_cookie=matched");
+  } finally {
+    await extension.close();
+  }
+});
+
+test("applies regex response header and cookie rules only to matching responses", async () => {
+  const extension = await launchExtension();
+
+  try {
+    const regexFilter = "^http://127\\.0\\.0\\.1:[0-9]+/regex/v[0-9]+/empty$";
+    await seedRules(extension.extensionPage, [
+      responseHeaderRule({ header: "X-E2E-Regex-Response", value: "matched", regexFilter }),
+      responseCookieRule({ name: "e2e_regex_response_cookie", value: "matched", regexFilter })
+    ]);
+    await waitForAppliedRuleCount(extension.extensionPage, 2);
+    const page = await extension.context.newPage();
+    await page.goto(server.origin);
+
+    const unmatched = await page.evaluate(async () =>
+      (await fetch("/regex/vX/empty")).headers.get("x-e2e-regex-response")
+    );
+    const unmatchedCookies = await extension.context.cookies(server.origin);
+    const matched = await page.evaluate(async () =>
+      (await fetch("/regex/v2/empty")).headers.get("x-e2e-regex-response")
+    );
+    const matchedCookies = await extension.context.cookies(server.origin);
+    expect(unmatched).toBeNull();
+    expect(unmatchedCookies.some((cookie) => cookie.name === "e2e_regex_response_cookie")).toBe(false);
+    expect(matched).toBe("matched");
+    expect(matchedCookies.find((cookie) => cookie.name === "e2e_regex_response_cookie")?.value).toBe("matched");
+  } finally {
+    await extension.close();
+  }
+});
+
 test("defaults new response cookie SameSite selections to Lax", async () => {
   const extension = await launchExtension();
 
@@ -2030,12 +2084,12 @@ test("preserves configured profiles and working rules across an extension versio
       expect(upgradedExtension.extensionId).toBe(extensionId);
       await expect.poll(async () =>
         (await readStoredRules(upgradedExtension.extensionPage)).schemaVersion
-      ).toBe(5);
+      ).toBe(6);
       await waitForAppliedRuleCount(upgradedExtension.extensionPage, 4);
 
       const upgradedStorage = await readStoredRules(upgradedExtension.extensionPage);
       expect(upgradedStorage).toMatchObject({
-        schemaVersion: 5,
+        schemaVersion: 6,
         rulesEnabled: true,
         masterToggleSnapshot: null,
         activeProfileId: "upgrade-active-profile"
@@ -2102,7 +2156,7 @@ test("migrates legacy array-based rules into default profile storage", async () 
 
     const migrated = await readStoredRules(extension.extensionPage);
 
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     expect(migrated.rulesEnabled).toBe(true);
     expect(migrated.activeProfileId).toBe("default");
     expect(migrated.profiles).toHaveLength(1);
@@ -2155,7 +2209,7 @@ test("migrates old profiles with no enabled rules to an inactive master toggle",
       .toHaveText("Inactive");
 
     const migrated = await readStoredRules(extension.extensionPage);
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     expect(migrated.rulesEnabled).toBe(false);
     expect(migrated.profiles[0].rules[0].enabled).toBe(false);
   } finally {

@@ -26,6 +26,19 @@ test("rejects invalid header and cookie names", () => {
   assert.equal(toDeclarativeRule({ kind: "requestCookie", name: "bad=name" }, 0), null);
 });
 
+test("compiles regex rules without a URL pattern", () => {
+  const compiled = toDeclarativeRule({
+    kind: "responseHeader",
+    header: "X-Debug",
+    value: "on",
+    urlFilter: "|http*",
+    regexFilter: "^https://api\\.example\\.com/v[0-9]+/"
+  }, 0);
+
+  assert.equal(compiled.condition.regexFilter, "^https://api\\.example\\.com/v[0-9]+/");
+  assert.equal(Object.hasOwn(compiled.condition, "urlFilter"), false);
+});
+
 test("compiles persistent response cookie attributes", () => {
   const compiled = toDeclarativeRule({
     kind: "responseCookie",

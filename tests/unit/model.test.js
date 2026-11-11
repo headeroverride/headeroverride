@@ -35,7 +35,8 @@ test("uses one rule reader for header and cookie defaults", () => {
       comment: "",
       header: "",
       operation: "set",
-      urlFilter: "|http*"
+      urlFilter: "|http*",
+      regexFilter: ""
     }
   );
 

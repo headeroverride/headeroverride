@@ -152,7 +152,8 @@ async function main() {
       animations: "disabled"
     });
 
-    await urlFilterPopover.getByRole("button", { name: "Close URL filter", exact: true }).click();
+    await popupPage.keyboard.press("Escape");
+    await urlFilterPopover.waitFor({ state: "hidden" });
     await popupPage.getByRole("button", { name: "Profiles" }).click();
     await popupPage.screenshot({
       path: path.join(captureDir, "popup-profiles.png"),

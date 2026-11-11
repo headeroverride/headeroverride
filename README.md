@@ -43,7 +43,7 @@ Open the extension popup, choose a tab, and add a rule:
 - **Request Headers** and **Response Headers** override HTTP headers for matching URL filters.
 - **Request Cookies** overrides outgoing `Cookie` headers.
 - **Response Cookies** overrides response `Set-Cookie` headers.
-- **URL filter** is used for header and cookie rules with declarative request-rule matching syntax. `|http*` matches HTTP and HTTPS requests.
+- **URL filter** is used for header and cookie rules. Choose all websites, a URL pattern with declarative request-rule wildcards (`|http*` matches HTTP and HTTPS requests), or a regular expression using RE2 syntax.
 - **Comment** is an optional note for labeling or documenting a rule.
 
 Rules are saved automatically and synced into the browser's dynamic request rules.

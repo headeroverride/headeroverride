@@ -30,7 +30,9 @@ export function toDeclarativeRule(rule, index) {
     priority: 1,
     action,
     condition: {
-      urlFilter: optionalText(rule.urlFilter) || "|http*",
+      ...(rule.regexFilter
+        ? { regexFilter: rule.regexFilter }
+        : { urlFilter: optionalText(rule.urlFilter) || "|http*" }),
       resourceTypes: RESOURCE_TYPES
     }
   };

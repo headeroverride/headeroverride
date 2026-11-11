@@ -65,7 +65,7 @@ for (const [kind, createRule] of [
   ["request cookie", requestCookieRule],
   ["response cookie", responseCookieRule]
 ] as const) {
-  test(`saves ${kind} URL edits only through Done and applies the saved scope`, async ({ extension }) => {
+  test(`saves ${kind} URL edits only through Save and applies the saved scope`, async ({ extension }) => {
     const page = extension.extensionPage;
     const rule = createRule({ urlFilter: "*saved.example.com/*" });
     await prepare(page, [rule]);
@@ -81,13 +81,13 @@ for (const [kind, createRule] of [
     await expect(popup).toBeVisible();
     expect(await savedFilter(page, rule.id)).toBe("*saved.example.com/*");
     expect(await appliedFilters(page)).toEqual(["*saved.example.com/*"]);
-    await expect(trigger(page, rule.id)).toHaveAttribute("title", "URL filter: *saved.example.com/*");
+    await expect(trigger(page, rule.id)).toHaveAttribute("title", "URL pattern: *saved.example.com/*");
 
-    await popup.getByRole("button", { name: "Done", exact: true }).click();
+    await popup.getByRole("button", { name: "Save", exact: true }).click();
     await expect(popup).toBeHidden();
     await expect.poll(() => savedFilter(page, rule.id)).toBe("*draft.example.com/*");
     await expect.poll(() => appliedFilters(page)).toEqual(["*draft.example.com/*"]);
-    await expect(trigger(page, rule.id)).toHaveAttribute("title", "URL filter: *draft.example.com/*");
+    await expect(trigger(page, rule.id)).toHaveAttribute("title", "URL pattern: *draft.example.com/*");
     await expect(trigger(page, rule.id)).toBeFocused();
 
     await reloadExtensionPage(page);
@@ -97,7 +97,7 @@ for (const [kind, createRule] of [
   });
 }
 
-test("keeps scope changes local until Done and normalizes an empty custom filter", async ({ extension }) => {
+test("keeps scope changes local until Save and normalizes an empty custom filter", async ({ extension }) => {
   const page = extension.extensionPage;
   const rule = requestHeaderRule({ urlFilter: "*saved.example.com/*" });
   await prepare(page, [rule]);
@@ -105,33 +105,94 @@ test("keeps scope changes local until Done and normalizes an empty custom filter
   const input = popup.getByRole("textbox", { name: "URL filter", exact: true });
 
   await input.fill("*draft.example.com/*");
-  await popup.getByRole("button", { name: "All websites", exact: true }).click();
+  await popup.getByRole("button", { name: "Any", exact: true }).click();
   await expect(input).toBeHidden();
-  await expect(popup.getByRole("button", { name: "Done", exact: true })).toBeVisible();
+  await expect(popup.getByRole("button", { name: "Save", exact: true })).toBeVisible();
   expect(await savedFilter(page, rule.id)).toBe("*saved.example.com/*");
   await expect(trigger(page, rule.id)).toHaveClass(/is-custom/);
 
-  await popup.getByRole("button", { name: "Custom URL", exact: true }).click();
+  await popup.getByRole("button", { name: "URL pattern", exact: true }).click();
   await expect(input).toHaveValue("*draft.example.com/*");
-  await popup.getByRole("button", { name: "All websites", exact: true }).click();
-  await popup.getByRole("button", { name: "Done", exact: true }).click();
+  await popup.getByRole("button", { name: "Any", exact: true }).click();
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(() => savedFilter(page, rule.id)).toBe("|http*");
   await expect(trigger(page, rule.id)).not.toHaveClass(/is-custom/);
   await expect(trigger(page, rule.id)).toHaveAttribute("title", "Applies to all websites");
 
   await openEditor(page, rule.id);
-  await expect(popup.getByRole("button", { name: "All websites", exact: true }))
+  await expect(popup.getByRole("button", { name: "Any", exact: true }))
     .toHaveAttribute("aria-pressed", "true");
-  await popup.getByRole("button", { name: "Custom URL", exact: true }).click();
+  await popup.getByRole("button", { name: "URL pattern", exact: true }).click();
   await input.fill("");
-  await popup.getByRole("button", { name: "Done", exact: true }).click();
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
   await expect(popup).toBeHidden();
   expect(await savedFilter(page, rule.id)).toBe("|http*");
   await reloadExtensionPage(page);
   await expect(trigger(page, rule.id)).not.toHaveClass(/is-custom/);
 });
 
-test("discards URL drafts on close, Escape, outside clicks, and switching rules", async ({ extension }) => {
+test("saves and reopens regex filters for header and cookie rules", async ({ extension }) => {
+  const page = extension.extensionPage;
+  const header = requestHeaderRule();
+  const cookie = responseCookieRule();
+  await prepare(page, [header, cookie]);
+
+  for (const [tab, rule] of [["Headers", header], ["Cookies", cookie]] as const) {
+    await page.getByRole("button", { name: new RegExp(tab) }).click();
+    const popup = await openEditor(page, rule.id);
+    await popup.getByRole("button", { name: "URL Regex", exact: true }).click();
+    const regex = "^https://api\\.example\\.com/v[0-9]+/";
+    await popup.getByRole("textbox", { name: "Regex filter" }).fill(regex);
+    await popup.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(popup).toBeHidden();
+    await expect(trigger(page, rule.id)).toHaveAttribute("title", `Regex: ${regex}`);
+    await expect.poll(async () => {
+      const rules = await page.evaluate(() => chrome.declarativeNetRequest.getDynamicRules());
+      return rules.some((item) => item.condition.regexFilter === regex && !item.condition.urlFilter);
+    }).toBe(true);
+
+    await reloadExtensionPage(page);
+    await page.getByRole("button", { name: new RegExp(tab) }).click();
+    const reopened = await openEditor(page, rule.id);
+    await expect(reopened.getByRole("button", { name: "URL Regex", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(reopened.getByRole("textbox", { name: "Regex filter" })).toHaveValue(regex);
+    await page.keyboard.press("Escape");
+    await expect(reopened).toBeHidden();
+  }
+});
+
+test("keeps regex and URL pattern drafts separate and rejects invalid regex", async ({ extension }) => {
+  const page = extension.extensionPage;
+  const rule = requestHeaderRule({ urlFilter: "*saved.example.com/*" });
+  await prepare(page, [rule]);
+  const popup = await openEditor(page, rule.id);
+  const pattern = popup.getByRole("textbox", { name: "URL filter", exact: true });
+  await pattern.fill("*draft.example.com/*");
+  await popup.getByRole("button", { name: "URL Regex", exact: true }).click();
+  const regex = popup.getByRole("textbox", { name: "Regex filter" });
+  await regex.fill("(");
+  await popup.getByRole("button", { name: "URL pattern", exact: true }).click();
+  await expect(pattern).toHaveValue("*draft.example.com/*");
+  await popup.getByRole("button", { name: "URL Regex", exact: true }).click();
+  await expect(regex).toHaveValue("(");
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(popup).toBeVisible();
+  await expect(popup.getByRole("alert")).toContainText("unsupported or invalid syntax");
+  expect(await savedFilter(page, rule.id)).toBe(rule.urlFilter);
+  await regex.fill("");
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(popup.getByRole("alert")).toContainText("Enter a regular expression");
+  await popup.getByRole("button", { name: "Any", exact: true }).click();
+  await popup.getByRole("button", { name: "URL pattern", exact: true }).click();
+  await expect(pattern).toHaveValue("*draft.example.com/*");
+  await page.keyboard.press("Escape");
+  await openEditor(page, rule.id);
+  await expect(pattern).toHaveValue(rule.urlFilter);
+  await popup.getByRole("button", { name: "URL Regex", exact: true }).click();
+  await expect(regex).toHaveValue("");
+});
+
+test("discards URL drafts on Escape, outside clicks, and switching rules", async ({ extension }) => {
   const page = extension.extensionPage;
   const first = requestHeaderRule({ id: "first", urlFilter: "*first.example.com/*" });
   const second = requestHeaderRule({ id: "second", urlFilter: "*second.example.com/*" });
@@ -141,10 +202,9 @@ test("discards URL drafts on close, Escape, outside clicks, and switching rules"
   const stored = await readStoredRules(page);
   const applied = await appliedFilters(page);
 
-  for (const dismiss of ["close", "escape", "outside", "keyboard-outside", "trigger", "switch"] as const) {
+  for (const dismiss of ["escape", "outside", "keyboard-outside", "trigger", "switch"] as const) {
     const popup = await openEditor(page, first.id);
     await popup.getByRole("textbox", { name: "URL filter", exact: true }).fill(`*${dismiss}.example.com/*`);
-    if (dismiss === "close") await popup.getByRole("button", { name: "Close URL filter", exact: true }).click();
     if (dismiss === "escape") await page.keyboard.press("Escape");
     if (dismiss === "outside") await page.getByRole("heading", { name: "Header Override", exact: true }).click();
     if (dismiss === "keyboard-outside") {
@@ -159,7 +219,7 @@ test("discards URL drafts on close, Escape, outside clicks, and switching rules"
       await trigger(page, second.id).click();
       await expect(editor(page).getByRole("textbox", { name: "URL filter", exact: true }))
         .toHaveValue(second.urlFilter);
-      await editor(page).getByRole("button", { name: "Close URL filter", exact: true }).click();
+      await page.keyboard.press("Escape");
     }
     await expect(editor(page)).toBeHidden();
     expect(await readStoredRules(page)).toEqual(stored);
@@ -167,7 +227,7 @@ test("discards URL drafts on close, Escape, outside clicks, and switching rules"
     await openEditor(page, first.id);
     await expect(editor(page).getByRole("textbox", { name: "URL filter", exact: true }))
       .toHaveValue(first.urlFilter);
-    await editor(page).getByRole("button", { name: "Close URL filter", exact: true }).click();
+    await page.keyboard.press("Escape");
   }
 });
 
@@ -228,7 +288,7 @@ test("keeps the editor open when a text selection is released outside, then dism
   await expect(input).toHaveValue(rule.urlFilter);
 });
 
-test("shows the original syntax hint inside the editor and aligns the compact URL header", async ({ extension }) => {
+test("shows matching hints beside all URL scope tabs and aligns the compact URL column", async ({ extension }) => {
   const page = extension.extensionPage;
   await prepare(page, [requestHeaderRule(), responseHeaderRule(), requestCookieRule(), responseCookieRule()]);
 
@@ -248,8 +308,26 @@ test("shows the original syntax hint inside the editor and aligns the compact UR
       expect(Math.abs(labelBox.x + labelBox.width / 2 - buttonBox.x - buttonBox.width / 2)).toBeLessThanOrEqual(1);
 
       const popup = await openEditor(page, id);
-      const help = popup.getByRole("button", { name: "URL filter syntax examples", exact: true });
-      await help.click();
+      await expect(popup.locator(".url-filter-popover-title")).toHaveCount(0);
+      await expect(popup.getByRole("button", { name: "Close URL filter", exact: true })).toHaveCount(0);
+      const popupBox = (await popup.boundingBox())!;
+      const tabsBox = (await popup.getByRole("group", { name: "URL scope" }).boundingBox())!;
+      expect(tabsBox.y - popupBox.y).toBeLessThanOrEqual(12);
+      const anyTab = popup.locator('.url-filter-option:has([data-url-scope="all"])');
+      const patternTab = popup.locator('.url-filter-option:has([data-url-scope="pattern"])');
+      const regexTab = popup.locator('.url-filter-option:has([data-url-scope="regex"])');
+      const anyHelp = anyTab.getByRole("button", { name: "Any scope help", exact: true });
+      const patternHelp = patternTab.getByRole("button", { name: "URL filter syntax examples", exact: true });
+      const regexHelp = regexTab.getByRole("button", { name: "Regex syntax examples", exact: true });
+      await expect(anyHelp).toBeVisible();
+      await expect(patternHelp).toBeVisible();
+      await expect(regexHelp).toBeVisible();
+      await anyHelp.click();
+      const anyHint = page.getByRole("tooltip").filter({ hasText: "Matches any HTTP or HTTPS request." });
+      await expect(anyHint).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(anyHint).toBeHidden();
+      await patternHelp.click();
       const hint = page.getByRole("tooltip").filter({ hasText: "URL filter syntax" });
       await expect(hint).toBeVisible();
       await expect(hint.getByText("Matches", { exact: true })).toBeVisible();
@@ -267,13 +345,22 @@ test("shows the original syntax hint inside the editor and aligns the compact UR
       await page.keyboard.press("Escape");
       await expect(hint).toBeHidden();
       await expect(popup).toBeVisible();
+      await regexHelp.click();
+      const regexHint = page.getByRole("tooltip").filter({ hasText: "Regex syntax" });
+      await expect(regexHint).toBeVisible();
+      await expect(regexHint).toContainText("Match request URLs using RE2 syntax. Matching ignores case.");
+      await expect(regexHint).toContainText("^https://(example\\.com|example2\\.com)/");
+      await expect(regexHint).toContainText("Matches any HTTPS path on example.com or example2.com.");
+      await page.keyboard.press("Escape");
+      await expect(regexHint).toBeHidden();
+      await expect(popup.getByRole("button", { name: "Any", exact: true })).toHaveAttribute("aria-pressed", "true");
       await page.keyboard.press("Escape");
       await expect(popup).toBeHidden();
     }
   }
 });
 
-test("updates URL sorting only after Done without changing stored manual order", async ({ extension }) => {
+test("updates URL sorting only after Save without changing stored manual order", async ({ extension }) => {
   const page = extension.extensionPage;
   const first = requestHeaderRule({ id: "first", urlFilter: "*a.example.com/*" });
   const second = requestHeaderRule({ id: "second", urlFilter: "*m.example.com/*" });
@@ -295,7 +382,7 @@ test("updates URL sorting only after Done without changing stored manual order",
   expect(await ids()).toEqual(["first", "second"]);
   expect(await savedFilter(page, first.id)).toBe(first.urlFilter);
 
-  await popup.getByRole("button", { name: "Done", exact: true }).click();
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(ids).toEqual(["second", "first"]);
   await expect(trigger(page, first.id)).toBeFocused();
   await expect.poll(() => savedFilter(page, first.id)).toBe("*z.example.com/*");

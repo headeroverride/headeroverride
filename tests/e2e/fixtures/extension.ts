@@ -17,6 +17,7 @@ export type OverrideRule = {
   value: string;
   comment: string;
   urlFilter: string;
+  regexFilter?: string;
   header?: string;
   name?: string;
   domain?: string;
@@ -140,7 +141,7 @@ export async function seedProfiles(extensionPage: Page, profiles: OverrideProfil
       storageKey: STORAGE_KEY,
       syncStatusKey: SYNC_STATUS_KEY,
       data: {
-        schemaVersion: 5,
+        schemaVersion: 6,
         rulesEnabled: true,
         activeProfileId,
         profiles
@@ -281,7 +282,7 @@ export function responseCookieRule(overrides: Partial<OverrideRule> = {}): Overr
 
 function createStorageData(rules: OverrideRule[]) {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     rulesEnabled: true,
     activeProfileId: DEFAULT_PROFILE_ID,
     profiles: [

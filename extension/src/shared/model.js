@@ -59,7 +59,8 @@ export function readRule(value) {
       session: rule.session !== false,
       maxAge: text(rule.maxAge) || (isResponse ? "2592000" : ""),
       operation: isResponse ? oneOf(rule.operation, COOKIE_OPERATIONS, "add") : "add",
-      urlFilter: text(rule.urlFilter) || "|http*"
+      urlFilter: text(rule.urlFilter) || "|http*",
+      regexFilter: text(rule.regexFilter)
     };
   }
 
@@ -67,7 +68,8 @@ export function readRule(value) {
     ...common,
     header: text(rule.header),
     operation: oneOf(rule.operation, HEADER_OPERATIONS, "set"),
-    urlFilter: text(rule.urlFilter) || "|http*"
+    urlFilter: text(rule.urlFilter) || "|http*",
+    regexFilter: text(rule.regexFilter)
   };
 }
 

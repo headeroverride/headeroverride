@@ -147,7 +147,7 @@ test("sorts every visible column independently and clears back to stored order",
     for (const [label, selector, ascending] of [
       ["Header", ".header", ["X-Alpha-2", "X-Bravo-10"]],
       ["Value", ".value", ["3", "20"]],
-      ["URL", ".url-filter-trigger", ["URL filter: *a.example*", "URL filter: *z.example*"]],
+      ["URL", ".url-filter-trigger", ["URL pattern: *a.example*", "URL pattern: *z.example*"]],
       ["Comment", ".comment", ["first", "second"]]
     ] as const) {
       await clickSort(request, label);
