@@ -1233,6 +1233,12 @@ h1 {
   align-items: center;
 }
 
+.url-filter-help-slot[hidden],
+.url-filter-custom[hidden],
+.url-filter-error[hidden] {
+  display: none;
+}
+
 .help-panel.url-help-panel {
   position: fixed;
   z-index: 110;
@@ -1244,6 +1250,10 @@ h1 {
 
 .help-panel.url-help-panel.is-open {
   transform: none;
+}
+
+.help-panel.url-help-panel.help-panel-compact {
+  width: 260px;
 }
 
 .url-filter-trigger {
@@ -1290,11 +1300,11 @@ h1 {
 .url-filter-popover {
   position: fixed;
   z-index: 100;
-  width: 380px;
+  width: 480px;
   max-width: calc(100vw - 24px);
   max-height: calc(100vh - 24px);
   overflow-y: auto;
-  padding: 11px;
+  padding: 9px 11px 11px;
   border: 1px solid var(--line);
   border-radius: 9px;
   color: var(--text);
@@ -1302,53 +1312,42 @@ h1 {
   box-shadow: var(--shadow);
 }
 
-.url-filter-popover-title {
+.url-filter-popover.is-all {
+  width: 380px;
+  padding: 7px 9px 8px;
+}
+
+.url-filter-toolbar {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 18px;
+  align-items: stretch;
+  gap: 6px;
   margin-bottom: 9px;
-  font-size: 12px;
 }
 
-.url-filter-popover-title label {
-  font-weight: 650;
-}
-
-.url-filter-close {
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  margin-left: auto;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-  font-size: 19px;
-  line-height: 1;
-}
-
-.url-filter-close:hover,
-.url-filter-close:focus-visible {
-  color: var(--text);
-  background: var(--subtle-bg);
-  outline: none;
+.url-filter-popover.is-all .url-filter-toolbar {
+  margin-bottom: 0;
 }
 
 .url-filter-options {
   display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
   gap: 3px;
-  margin-bottom: 9px;
   padding: 3px;
   border-radius: 6px;
   background: var(--subtle-bg);
 }
 
-.url-filter-options button {
+.url-filter-option {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.url-filter-option > [data-url-scope] {
   flex: 1;
   min-width: 0;
   padding: 3px 6px;
@@ -1360,17 +1359,24 @@ h1 {
   font-size: 11px;
 }
 
-.url-filter-options button.is-selected,
-.url-filter-options button[aria-pressed="true"] {
+.url-filter-option.is-selected {
   color: var(--accent-dark);
   background: var(--panel);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
+}
+
+.url-filter-option.is-selected > [data-url-scope] {
+  color: var(--accent-dark);
   font-weight: 600;
 }
 
-.url-filter-options button:focus-visible,
-.url-filter-close:focus-visible,
-.url-filter-done:focus-visible {
+.url-filter-option .url-filter-help-slot {
+  flex: 0 0 auto;
+  margin-right: 4px;
+}
+
+.url-filter-option > [data-url-scope]:focus-visible,
+.url-filter-save:focus-visible {
   outline: 2px solid var(--accent-dark);
   outline-offset: 2px;
 }
@@ -1378,8 +1384,10 @@ h1 {
 .url-filter-editor-row {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+}
+
+.url-filter-editor-row[hidden] {
+  display: none;
 }
 
 .url-filter-custom {
@@ -1387,7 +1395,8 @@ h1 {
   min-width: 0;
 }
 
-.url-filter-popover .url-filter {
+.url-filter-popover .url-filter,
+.url-filter-popover .regex-filter {
   height: 31px;
   min-height: 31px;
   padding: 5px 8px;
@@ -1395,9 +1404,19 @@ h1 {
   font-size: 12px;
 }
 
-.url-filter-done {
+.url-filter-error {
+  margin-top: 7px;
+  color: #b42318;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.regex-help-copy {
+  overflow-wrap: anywhere;
+}
+
+.url-filter-save {
   flex: 0 0 auto;
-  height: 31px;
   padding: 0 11px;
   border: 0;
   border-radius: 6px;
@@ -1407,7 +1426,7 @@ h1 {
   font-size: 11px;
 }
 
-.url-filter-done:hover {
+.url-filter-save:hover {
   filter: brightness(1.1);
 }
 

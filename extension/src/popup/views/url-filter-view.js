@@ -14,32 +14,43 @@ export function createUrlFilterView({
 }) {
   const popover = popoverTemplate.content.firstElementChild.cloneNode(true);
   const input = popover.querySelector(".url-filter");
-  const customFields = popover.querySelector(".url-filter-custom");
+  const regexInput = popover.querySelector(".regex-filter");
+  const editorRow = popover.querySelector(".url-filter-editor-row");
+  const inputFields = Array.from(popover.querySelectorAll("[data-input-mode]"));
+  const error = popover.querySelector(".url-filter-error");
   const scopeButtons = Array.from(popover.querySelectorAll("[data-url-scope]"));
   const helpEntries = new Set();
   let activeEditor = null;
   let activeHelp = null;
+  let selectedScope = "all";
+  let validating = false;
 
   popover.id = "url-filter-popover";
   input.id = "url-filter-input";
-  popover.querySelector("label").htmlFor = input.id;
-  popover.querySelector(".url-filter-help-slot").append(createHelp("url-filter-editor-help"));
+  regexInput.id = "regex-filter-input";
+  popover.querySelector('[data-help-mode="all"]').append(createHelp(
+    document.querySelector("#any-help-template"), "any-filter-editor-help"
+  ));
+  popover.querySelector('[data-help-mode="pattern"]').append(createHelp(helpTemplate, "url-filter-editor-help"));
+  popover.querySelector('[data-help-mode="regex"]').append(createHelp(
+    document.querySelector("#regex-help-template"), "regex-filter-editor-help"
+  ));
   document.body.append(popover);
 
   for (const button of scopeButtons) {
     button.addEventListener("click", () => {
-      const custom = button.dataset.urlScope === "custom";
       closeHelp();
-      setScope(custom);
+      setScope(button.dataset.urlScope);
       positionEditor();
-      if (custom) input.focus({ preventScroll: true });
+      if (selectedScope === "pattern") input.focus({ preventScroll: true });
+      if (selectedScope === "regex") regexInput.focus({ preventScroll: true });
     });
   }
-  popover.querySelector(".url-filter-close").addEventListener("click", () => closeEditor());
-  popover.querySelector(".url-filter-done").addEventListener("click", () => closeEditor({ save: true }));
+  regexInput.addEventListener("input", clearError);
+  popover.querySelector(".url-filter-save").addEventListener("click", () => { void closeEditor({ save: true }); });
 
   // Use the press location so dragging a text selection outside the popup
-  // cannot dismiss it on release. Dismissal discards the draft; only Done saves.
+  // cannot dismiss it on release. Dismissal discards the draft; only Save commits it.
   function dismissOnOutsideInteraction(event) {
     if (!event.target.closest(".url-filter-popover, .url-filter-trigger, .url-help-wrapper, .url-help-panel")) {
       closeEditor({ restoreFocus: false });
@@ -76,12 +87,13 @@ export function createUrlFilterView({
   }
 
   function updateTrigger(button, rule) {
-    const filter = rule.urlFilter || DEFAULT_URL_FILTER;
-    const isCustom = filter !== DEFAULT_URL_FILTER;
+    const regex = rule.regexFilter || "";
+    const filter = regex || rule.urlFilter || DEFAULT_URL_FILTER;
+    const isCustom = Boolean(regex) || filter !== DEFAULT_URL_FILTER;
     const name = rule.header || rule.name || "rule";
     button.classList.toggle("is-custom", isCustom);
-    button.title = isCustom ? `URL filter: ${filter}` : "Applies to all websites";
-    button.setAttribute("aria-label", `Edit URL filter for ${name}: ${isCustom ? filter : "all websites"}`);
+    button.title = regex ? `Regex: ${regex}` : isCustom ? `URL pattern: ${filter}` : "Applies to all websites";
+    button.setAttribute("aria-label", `Edit URL filter for ${name}: ${regex ? `regex ${regex}` : isCustom ? `URL pattern ${filter}` : "all websites"}`);
   }
 
   function bindTrigger(node, rule) {
@@ -101,35 +113,89 @@ export function createUrlFilterView({
       updateTrigger(trigger, currentRule);
       activeEditor = { ruleId: rule.id, kind: ruleKind(currentRule) };
       input.value = currentRule.urlFilter || DEFAULT_URL_FILTER;
+      regexInput.value = currentRule.regexFilter || "";
+      clearError();
       popover.setAttribute("aria-label", `URL filter for ${currentRule.header || currentRule.name || "new rule"}`);
-      setScope(input.value !== DEFAULT_URL_FILTER);
+      setScope(regexInput.value ? "regex" : input.value !== DEFAULT_URL_FILTER ? "pattern" : "all");
       popover.hidden = false;
       trigger.setAttribute("aria-expanded", "true");
       positionEditor();
-      (customFields.hidden ? scopeButtons[0] : input).focus({ preventScroll: true });
+      (selectedScope === "regex" ? regexInput : selectedScope === "pattern" ? input : scopeButtons[0])
+        .focus({ preventScroll: true });
     });
   }
 
-  function setScope(custom) {
-    customFields.hidden = !custom;
+  function setScope(scope) {
+    selectedScope = scope;
+    popover.classList.toggle("is-all", scope === "all");
+    editorRow.hidden = scope === "all";
+    clearError();
+    for (const field of inputFields) field.hidden = field.dataset.inputMode !== scope;
     for (const button of scopeButtons) {
-      const selected = (button.dataset.urlScope === "custom") === custom;
-      button.classList.toggle("is-selected", selected);
+      const selected = button.dataset.urlScope === scope;
+      button.parentElement.classList.toggle("is-selected", selected);
       button.setAttribute("aria-pressed", String(selected));
     }
   }
 
-  function closeEditor({ restoreFocus = true, save = false } = {}) {
-    if (!activeEditor) return;
+  function clearError() {
+    error.textContent = "";
+    error.hidden = true;
+    regexInput.removeAttribute("aria-invalid");
+  }
+
+  function showError(message) {
+    error.textContent = message;
+    error.hidden = false;
+    regexInput.setAttribute("aria-invalid", "true");
+    regexInput.focus({ preventScroll: true });
+    positionEditor();
+  }
+
+  async function closeEditor({ restoreFocus = true, save = false } = {}) {
+    if (!activeEditor || (save && validating)) return;
     const previous = activeEditor;
     const rule = getRule(previous.ruleId);
-    const urlFilter = customFields.hidden ? DEFAULT_URL_FILTER : input.value || DEFAULT_URL_FILTER;
+    const urlFilter = selectedScope === "pattern" ? input.value || DEFAULT_URL_FILTER : DEFAULT_URL_FILTER;
+    const regexFilter = selectedScope === "regex" ? regexInput.value : "";
+    if (save && rule && selectedScope === "regex") {
+      if (!regexFilter.trim()) {
+        showError("Enter a regular expression.");
+        return;
+      }
+      if (/[^\x00-\x7F]/.test(regexFilter)) {
+        showError("Use ASCII characters in the regex. URLs encode other characters.");
+        return;
+      }
+      validating = true;
+      try {
+        const result = await chrome.declarativeNetRequest.isRegexSupported({
+          regex: regexFilter,
+          isCaseSensitive: false
+        });
+        if (activeEditor !== previous || selectedScope !== "regex" || regexInput.value !== regexFilter) return;
+        if (!result.isSupported) {
+          showError(result.reason === "memoryLimitExceeded"
+            ? "This regex is too complex for the browser."
+            : "This regex has unsupported or invalid syntax.");
+          return;
+        }
+      } catch (validationError) {
+        if (activeEditor === previous && selectedScope === "regex") {
+          showError(`Could not validate regex: ${validationError.message}`);
+        }
+        return;
+      } finally {
+        validating = false;
+      }
+      if (activeEditor !== previous || selectedScope !== "regex" || regexInput.value !== regexFilter) return;
+    }
     activeEditor = null;
     closeHelp();
     popover.hidden = true;
     findTrigger(previous.ruleId)?.setAttribute("aria-expanded", "false");
-    if (save && rule && urlFilter !== rule.urlFilter) {
-      onUpdateRule(rule.id, { urlFilter });
+    if (save && rule && (urlFilter !== rule.urlFilter || regexFilter !== (rule.regexFilter || ""))) {
+      onUpdateRule(rule.id, { urlFilter, regexFilter });
       const trigger = findTrigger(rule.id);
       if (trigger) updateTrigger(trigger, getRule(rule.id));
       onCommit(previous.kind);
@@ -153,8 +219,8 @@ export function createUrlFilterView({
     panel.style.top = `${Math.max(12, Math.min(top, window.innerHeight - height - 12))}px`;
   }
 
-  function createHelp(id) {
-    const wrapper = helpTemplate.content.firstElementChild.cloneNode(true);
+  function createHelp(template, id) {
+    const wrapper = template.content.firstElementChild.cloneNode(true);
     const button = wrapper.querySelector(".help-tip");
     const panel = wrapper.querySelector(".help-panel");
     wrapper.classList.add("url-help-wrapper");

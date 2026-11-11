@@ -142,23 +142,56 @@
       </span>
     </template>
 
+    <template id="any-help-template">
+      <span class="url-heading">
+        <button type="button" class="help-tip" aria-label="Any scope help" aria-expanded="false">?</button>
+        <span class="help-panel help-panel-compact" role="tooltip">
+          <span class="help-title">Any</span>
+          <span>Matches any HTTP or HTTPS request.</span>
+        </span>
+      </span>
+    </template>
+
+    <template id="regex-help-template">
+      <span class="url-heading">
+        <button type="button" class="help-tip" aria-label="Regex syntax examples" aria-expanded="false">?</button>
+        <span class="help-panel" role="tooltip">
+          <span class="help-title">Regex syntax</span>
+          <span class="regex-help-copy">Match request URLs using RE2 syntax. Matching ignores case.</span>
+          <code>^https://(example\.com|example2\.com)/</code>
+          <span class="regex-help-copy">Matches any HTTPS path on example.com or example2.com.</span>
+        </span>
+      </span>
+    </template>
+
     <template id="url-filter-popover-template">
       <div class="url-filter-popover" role="dialog" aria-label="URL filter" hidden>
-        <div class="url-filter-popover-title">
-          <label>URL filter</label>
-          <span class="url-filter-help-slot"></span>
-          <button class="url-filter-close" type="button" aria-label="Close URL filter">×</button>
+        <div class="url-filter-toolbar">
+          <div class="url-filter-options" role="group" aria-label="URL scope">
+            <span class="url-filter-option">
+              <button type="button" data-url-scope="all" aria-pressed="false">Any</button>
+              <span class="url-filter-help-slot" data-help-mode="all"></span>
+            </span>
+            <span class="url-filter-option">
+              <button type="button" data-url-scope="pattern" aria-pressed="false">URL pattern</button>
+              <span class="url-filter-help-slot" data-help-mode="pattern"></span>
+            </span>
+            <span class="url-filter-option">
+              <button type="button" data-url-scope="regex" aria-pressed="false">URL Regex</button>
+              <span class="url-filter-help-slot" data-help-mode="regex"></span>
+            </span>
+          </div>
+          <button class="url-filter-save" type="button">Save</button>
         </div>
-        <div class="url-filter-options" role="group" aria-label="URL scope">
-          <button type="button" data-url-scope="all" aria-pressed="false">All websites</button>
-          <button type="button" data-url-scope="custom" aria-pressed="false">Custom URL</button>
-        </div>
-        <div class="url-filter-editor-row">
-          <div class="url-filter-custom">
+        <div class="url-filter-editor-row" hidden>
+          <div class="url-filter-custom" data-input-mode="pattern">
             <input class="url-filter" type="text" placeholder="|http*" title="URL filter" aria-label="URL filter" spellcheck="false" autocomplete="off">
           </div>
-          <button class="url-filter-done" type="button">Done</button>
+          <div class="url-filter-custom" data-input-mode="regex" hidden>
+            <input class="regex-filter" type="text" placeholder="^https://api\.example\.com/" title="Regex filter" aria-label="Regex filter" spellcheck="false" autocomplete="off" aria-describedby="regex-filter-error">
+          </div>
         </div>
+        <div class="url-filter-error" id="regex-filter-error" role="alert" hidden></div>
       </div>
     </template>
 
