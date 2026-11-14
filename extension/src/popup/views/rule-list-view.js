@@ -442,16 +442,12 @@ export function createRuleListView({
     }
 
     const reorderDisabled = Boolean(sortByKind[kind]);
-    handle.hidden = reorderDisabled;
-    handle.disabled = reorderDisabled;
+    handle.setAttribute("aria-disabled", String(reorderDisabled));
     handle.draggable = !reorderDisabled;
-    if (reorderDisabled) {
-      handle.removeAttribute("title");
-      handle.removeAttribute("aria-label");
-    } else {
-      handle.title = "Drag to reorder rule";
-      handle.setAttribute("aria-label", handle.title);
-    }
+    handle.title = reorderDisabled
+      ? "Clear sorting to reorder rules"
+      : "Drag to reorder rule";
+    handle.setAttribute("aria-label", handle.title);
 
     handle.addEventListener("dragstart", (event) => {
       if (reorderDisabled || !event.dataTransfer) {

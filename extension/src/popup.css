@@ -1454,35 +1454,58 @@ h1 {
   z-index: 1;
   top: 0;
   bottom: 0;
-  left: -6px;
+  left: -8px;
   display: grid;
   place-items: center;
   width: 10px;
   min-height: 0;
   padding: 0;
   border: 0;
-  border-radius: 4px;
-  color: var(--muted);
-  background: transparent;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
   cursor: grab;
+  opacity: 0;
+  transition: opacity 0.12s ease;
   user-select: none;
+}
+
+.drag-handle svg {
+  pointer-events: none;
+}
+
+.rule:hover .drag-handle,
+.rule.dragging .drag-handle,
+.drag-handle:focus-visible {
+  opacity: 1;
 }
 
 .drag-handle:hover,
 .drag-handle:focus-visible {
-  color: var(--accent-dark);
-  background: var(--accent-soft);
+  border-left-color: var(--accent-dark);
+  background: var(--accent-soft-hover);
   outline: none;
+}
+
+.drag-handle:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-focus-strong);
 }
 
 .drag-handle:active {
   cursor: grabbing;
 }
 
-.drag-handle:disabled {
-  color: var(--line);
-  background: transparent;
+.drag-handle[aria-disabled="true"],
+.drag-handle[aria-disabled="true"]:hover {
+  border-left-color: var(--disabled-text);
+  color: var(--disabled-text);
+  background: var(--subtle-bg);
   cursor: not-allowed;
+}
+
+.drag-handle[aria-disabled="true"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--line);
 }
 
 .rule.dragging {

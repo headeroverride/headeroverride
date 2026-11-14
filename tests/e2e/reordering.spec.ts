@@ -61,6 +61,12 @@ test("reorders one section, persists it, and leaves other kinds and profiles in 
 
     const request = section(extension.extensionPage, "Request");
     const requestRules = request.locator(".rule");
+    const firstHandle = requestRules.first().locator(".drag-handle");
+    await expect(firstHandle).toHaveCSS("opacity", "0");
+    await requestRules.first().hover();
+    await expect(firstHandle).toHaveCSS("opacity", "1");
+    await extension.extensionPage.mouse.move(0, 0);
+    await expect(firstHandle).toHaveCSS("opacity", "0");
     await dragRule(requestRules.nth(0), requestRules.nth(2), "bottom");
 
     await expect.poll(() => ruleIds(request)).toEqual([
@@ -105,8 +111,13 @@ test("locks only the sorted section and reorders cookie rules after sorting is c
     await nameSort.click();
 
     await expect(request.locator(".drag-handle")).toHaveCount(2);
-    await expect(request.locator(".drag-handle").first()).toBeHidden();
-    await expect(request.locator(".drag-handle").first()).not.toHaveAttribute("title", /.+/);
+    await request.locator(".rule").first().hover();
+    await expect(request.locator(".drag-handle").first()).toBeVisible();
+    await expect(request.locator(".drag-handle").first()).toBeDisabled();
+    await expect(request.locator(".drag-handle").first()).toHaveAttribute("title", "Clear sorting to reorder rules");
+    await expect(request.locator(".drag-handle").first()).toHaveCSS("opacity", "1");
+    await expect(request.locator(".drag-handle").first()).toHaveCSS("cursor", "not-allowed");
+    await expect(request.locator(".drag-handle").first()).toHaveAttribute("draggable", "false");
     await expect(response.locator(".drag-handle")).toBeVisible();
 
     await nameSort.click();
