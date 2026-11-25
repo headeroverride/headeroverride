@@ -5,6 +5,7 @@ import {
   validHeaderName
 } from "../../shared/model.js";
 import { sortRulesForSection } from "../sorting.js";
+import { getRuleSearchMatches } from "../search.js";
 import { createUrlFilterView } from "./url-filter-view.js";
 
 const TAB_LABELS = {
@@ -26,10 +27,12 @@ export function createRuleListView({
   onUpdateRule,
   onDeleteRule,
   onReorderRules,
-  onChangeSort
+  onChangeSort,
+  onSearchCommit
 }) {
   let rules = [];
   let activeTab = "headers";
+  let searchQuery = "";
   let sortByKind = {};
   let suppressedSortPreview = "";
   let suppressedSortPreviewFromPointer = false;
@@ -46,7 +49,10 @@ export function createRuleListView({
     popoverTemplate: urlFilterPopoverTemplate,
     getRule: (id) => rules.find((rule) => rule.id === id),
     onUpdateRule: updateRule,
-    onCommit: (kind) => refreshSortedSection(kind, "urlFilter"),
+    onCommit: (kind) => {
+      refreshSortedSection(kind, "urlFilter");
+      onSearchCommit();
+    },
     onCloseHelp: closeUrlFilterHelp
   });
 
@@ -85,13 +91,15 @@ export function createRuleListView({
     for (const kind of visibleKinds) {
       const section = renderRuleSection(kind);
       visibleCount += section.ruleCount;
-      rulesContainer.append(section.node);
+      if (!searchQuery || section.ruleCount > 0) {
+        rulesContainer.append(section.node);
+      }
     }
   
     if (visibleCount === 0) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "No rules yet.";
+      empty.textContent = searchQuery ? "No matching rules." : "No rules yet.";
       rulesContainer.append(empty);
     }
   }
@@ -129,7 +137,7 @@ export function createRuleListView({
     section.append(header, renderSectionHead(kind));
   
     const sectionRules = sortRulesForSection(
-      rules.filter((rule) => ruleKind(rule) === kind),
+      rules.filter((rule) => ruleKind(rule) === kind && getRuleSearchMatches(rule, searchQuery).matched),
       kind,
       sortByKind[kind]
     );
@@ -318,6 +326,11 @@ export function createRuleListView({
     setFieldValue(value, rule.value || "");
     setFieldValue(comment, rule.comment || "");
     updateCommentStyle(comment);
+    const matches = getRuleSearchMatches(rule, searchQuery);
+    header?.classList.toggle("search-match", matches.header);
+    value?.classList.toggle("search-match", matches.value);
+    comment?.classList.toggle("search-match", matches.comment);
+    node.querySelector(".url-filter-trigger")?.classList.toggle("search-match", matches.url);
     updateHeaderOperation(node, kind, rule.operation);
     bindDragHandle(node, dragHandle, rule, kind);
     urlFilterView.bindTrigger(node, rule);
@@ -344,6 +357,7 @@ export function createRuleListView({
     bindSortCommit(header, kind, "header");
     bindSortCommit(value, kind, "value");
     bindSortCommit(comment, kind, "comment");
+    bindSearchCommit(header, value, comment);
     deleteButton?.addEventListener("click", (event) => deleteRule(rule.id, event));
   
     return node;
@@ -385,6 +399,11 @@ export function createRuleListView({
     updateCookieDirection(node, rule.id, kind, getControlValue(session, "true"));
     updateCookieOperation(node, kind, rule.operation);
     updateCommentStyle(comment);
+    const matches = getRuleSearchMatches(rule, searchQuery);
+    name?.classList.toggle("search-match", matches.name);
+    value?.classList.toggle("search-match", matches.value);
+    comment?.classList.toggle("search-match", matches.comment);
+    node.querySelector(".url-filter-trigger")?.classList.toggle("search-match", matches.url);
     bindDragHandle(node, dragHandle, rule, kind);
     urlFilterView.bindTrigger(node, rule);
   
@@ -419,6 +438,7 @@ export function createRuleListView({
     bindSortCommit(name, kind, "name");
     bindSortCommit(value, kind, "value");
     bindSortCommit(comment, kind, "comment");
+    bindSearchCommit(name, value, comment);
     for (const toggle of detailToggles) {
       toggle.addEventListener("click", () => {
         expandedCookieDetails.add(rule.id);
@@ -441,11 +461,11 @@ export function createRuleListView({
       return;
     }
 
-    const reorderDisabled = Boolean(sortByKind[kind]);
+    const reorderDisabled = Boolean(sortByKind[kind]) || Boolean(searchQuery);
     handle.setAttribute("aria-disabled", String(reorderDisabled));
     handle.draggable = !reorderDisabled;
     handle.title = reorderDisabled
-      ? "Clear sorting to reorder rules"
+      ? searchQuery ? "Clear search to reorder rules" : "Clear sorting to reorder rules"
       : "Drag to reorder rule";
     handle.setAttribute("aria-label", handle.title);
 
@@ -473,7 +493,7 @@ export function createRuleListView({
 
   function bindRuleListDragEvents(list, kind) {
     list.addEventListener("dragover", (event) => {
-      if (!dragState || dragState.kind !== kind || sortByKind[kind]) {
+      if (!dragState || dragState.kind !== kind || sortByKind[kind] || searchQuery) {
         return;
       }
 
@@ -495,7 +515,7 @@ export function createRuleListView({
     });
 
     list.addEventListener("drop", (event) => {
-      if (!dragState || dragState.kind !== kind || sortByKind[kind]) {
+      if (!dragState || dragState.kind !== kind || sortByKind[kind] || searchQuery) {
         return;
       }
 
@@ -787,6 +807,12 @@ export function createRuleListView({
     control?.addEventListener("change", () => refreshSortedSection(kind, field));
   }
 
+  function bindSearchCommit(...controls) {
+    for (const control of controls) {
+      control?.addEventListener("change", onSearchCommit);
+    }
+  }
+
   function refreshSortedSection(kind, field) {
     if (sortByKind[kind]?.field === field) {
       renderRules();
@@ -914,7 +940,7 @@ export function createRuleListView({
   }
 
   return {
-    render(nextRules, nextActiveTab, nextSortByKind = {}) {
+    render(nextRules, nextActiveTab, nextSortByKind = {}, nextSearchQuery = "") {
       if (preserveSuppressedPreview) {
         preserveSuppressedPreview = false;
       } else {
@@ -923,6 +949,7 @@ export function createRuleListView({
       }
       rules = nextRules;
       activeTab = nextActiveTab;
+      searchQuery = nextSearchQuery;
       sortByKind = nextSortByKind;
       updateTabs();
       renderRules();
