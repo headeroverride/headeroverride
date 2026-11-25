@@ -11,6 +11,7 @@ import {
   ruleKind
 } from "../shared/model.js";
 import { createProfilesExport, mergeProfiles, readProfilesJson } from "./profile-transfer.js";
+import { normalizeSearchQuery } from "./search.js";
 import {
   getHostAccessState,
   HOST_ACCESS_ALL,
@@ -54,6 +55,7 @@ const hostAccessMessage = document.querySelector("#host-access-message");
 const grantHostAccessButton = document.querySelector("#grant-host-access");
 const rulesShell = document.querySelector(".rules-shell");
 const stickySectionAddButton = document.querySelector("#sticky-section-add-button");
+const searchInput = document.querySelector("#rule-search-input");
 const tabs = Array.from(document.querySelectorAll(".tab"));
 const countNodes = Array.from(document.querySelectorAll("[data-count]"));
 const importProfilesInput = document.createElement("input");
@@ -64,6 +66,8 @@ importProfilesInput.hidden = true;
 document.body.append(importProfilesInput);
 
 let activeTab = "headers";
+let searchQuery = "";
+let searchRefreshTimer = null;
 let sortingByProfile = {};
 let storageData = createStorageData([]);
 let profiles = storageData.profiles;
@@ -90,7 +94,8 @@ const ruleListView = createRuleListView({
   onUpdateRule: updateRule,
   onDeleteRule: deleteRule,
   onReorderRules: reorderRules,
-  onChangeSort: changeSectionSort
+  onChangeSort: changeSectionSort,
+  onSearchCommit: refreshSearchAfterEdit
 });
 let isAddingProfile = false;
 let profileMenuMode = "list";
@@ -353,6 +358,20 @@ for (const tab of tabs) {
   });
 }
 
+searchInput.addEventListener("input", () => {
+  searchQuery = normalizeSearchQuery(searchInput.value);
+  ruleListView.render(rules, activeTab, getViewedProfileSorting(), searchQuery);
+});
+
+searchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && searchQuery) {
+    event.preventDefault();
+    event.stopPropagation();
+    clearSearch();
+    ruleListView.render(rules, activeTab, getViewedProfileSorting(), searchQuery);
+  }
+});
+
 document.addEventListener("pointerdown", (event) => {
   if (!event.target.closest(".url-heading, .section-help, .help-panel")) {
     ruleListView.closeHelp();
@@ -406,6 +425,7 @@ function addRuleFromButton(addButton, event) {
   }
 
   const kind = ruleKind({ kind: addButton.dataset.kind });
+  clearSearch();
   const newRule = createRuleForKind(kind);
   rules = [...rules, newRule];
   updateViewedProfileRules(rules);
@@ -463,7 +483,7 @@ function render() {
   renderGlobalRulesToggle();
   renderCurrentProfile();
   renderProfileMenu();
-  ruleListView.render(rules, activeTab, getViewedProfileSorting());
+  ruleListView.render(rules, activeTab, getViewedProfileSorting(), searchQuery);
   if (rulesChanged) {
     saveNow();
   }
@@ -1087,8 +1107,26 @@ function changeSectionSort(kind, field) {
     kind,
     nextSort
   );
-  ruleListView.render(rules, activeTab, getViewedProfileSorting());
+  ruleListView.render(rules, activeTab, getViewedProfileSorting(), searchQuery);
   savePopupNow();
+}
+
+function clearSearch() {
+  clearTimeout(searchRefreshTimer);
+  searchRefreshTimer = null;
+  searchInput.value = "";
+  searchQuery = "";
+}
+
+function refreshSearchAfterEdit() {
+  if (!searchQuery) {
+    return;
+  }
+
+  clearTimeout(searchRefreshTimer);
+  searchRefreshTimer = setTimeout(() => {
+    ruleListView.render(rules, activeTab, getViewedProfileSorting(), searchQuery);
+  }, 100);
 }
 
 function isSameStorageData(left, right) {
